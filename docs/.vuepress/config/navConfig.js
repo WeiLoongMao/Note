@@ -1,6 +1,5 @@
-// const nav = require('../../../utils/getNav');
-// console.log(nav);
-// module.exports = nav;
+const nav = require('../../../utils/getNav');
+module.exports = nav;
 // module.exports = [
 //   {
 //     text: "Home",
@@ -80,20 +79,20 @@
 
 
 
-module.exports = [
-  {
-    text: "Home",
-    link: "/",
-  },
-  {
-    text: "FrontEnd",
-    items: [
-      {
-        text: "JavaScript",
-        link: '/JavaScript_FrontEnd/',
-      }
-    ]
-  },
+// module.exports = [
+//   {
+//     text: "Home",
+//     link: "/",
+//   },
+//   {
+//     text: "FrontEnd",
+//     items: [
+//       {
+//         text: "JavaScript",
+//         link: '/JavaScript_FrontEnd/',
+//       }
+//     ]
+//   },
   // {
   //   text: "BackEnd",
   //   items: [
@@ -113,5 +112,5 @@ module.exports = [
   // },
   // { text: "System", link: "/system" },
   // { text: "DevTools", link: "/javascript/" },
-  { text: "External", link: "https:www.google.com" },
-];
+//   { text: "External", link: "https:www.google.com" },
+// ];

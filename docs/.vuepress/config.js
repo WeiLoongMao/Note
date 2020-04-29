@@ -2,7 +2,6 @@ const head = require('./config/headConfig');
 const plugins = require('./config/pluginConfig');
 const nav = require('./config/navConfig');
 const sidebar = require('./config/sidebarConfig');
-// const sidebar = require('../../utils/getSidebar');
 module.exports = {
   base: "/note/",
   // repo: "https://weiloongmao.github.io/Note/",
