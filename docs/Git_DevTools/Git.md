@@ -124,7 +124,7 @@ git checkout -- <file>
 #查看所有远程仓库
 git remote -v
 
-#添加远程仓库(关联到远程仓库)
+#添加远程仓库
 git remote add <shortname> <url>
 
 #拉取数据但不合并
@@ -165,4 +165,37 @@ doc/**/*.pdf
 ```
 
 
+
+**标签**用来表示重要节点或里程碑
+
+标签分为轻标签和附注标签
+
+```shell
+#轻标签
+git tag v1.4-lw
+#附注标签
+git tag -a v1.4 -m '说明内容'
+#查看标签信息
+git show v1.4
+
+#对提交历史打标签
+git tag -a v1.0 <记录hash值>
+
+#删除标签
+git tag -d <tagname>
+```
+
+
+
+默认情况下不会将本地的标签同步到远程仓库上，需要显示推送标签
+
+```shell
+#单标签推送
+git push origin <tagname>
+#多个标签同时推送
+git push origin --tags
+
+#删除远程标签
+git push <remote>:refs/tags/<tagname>
+```
 
