@@ -166,6 +166,8 @@ doc/**/*.pdf
 
 
 
+### 标签
+
 **标签**用来表示重要节点或里程碑
 
 标签分为轻标签和附注标签
@@ -197,5 +199,28 @@ git push origin --tags
 
 #删除远程标签
 git push <remote>:refs/tags/<tagname>
+git push origin --delete <tagname>
 ```
+
+
+
+**检出标签**是查看标签所指向的文件版本。
+
+```shell
+git checkout <tagname> #有副作用，导致分离头指针的状态下，提交不属于任何分支并将无法访问
+```
+
+一般情况下，通过创建新分支
+
+```shell
+git checkout -b <branchname> <tagname>
+```
+
+
+
+可以通过alias设置git 命令的别名
+
+
+
+## Git分支
 
