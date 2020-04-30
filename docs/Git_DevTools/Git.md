@@ -113,6 +113,31 @@ git log -p #显示提交变更内容
 git log --stat #显示简略信息
 git log --pretty=<online/short/full/fuller> #不同方式显示
 git log --pretty=format:"%h %s" --graph #图形化显示
+
+#取消暂存文件
+git restore --staged <文件或路径>
+git reset HARD <文件或路径>
+
+#撤销文件修改（危险）
+git checkout -- <file>
+
+#查看所有远程仓库
+git remote -v
+
+#添加远程仓库(关联到远程仓库)
+git remote add <shortname> <url>
+
+#拉取数据但不合并
+git fetch <remote>
+
+#查看某个远程仓库信息
+git remote show origin
+
+#远程仓库重命名
+git remote rename <oldname> <newname>
+
+#移除远程仓库
+git remote remove 
 ```
 
 
