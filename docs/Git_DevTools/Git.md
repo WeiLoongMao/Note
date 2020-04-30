@@ -59,6 +59,8 @@ git config --get user.name
 
 
 
+### git常用操作命令
+
 在git目录下的文件一共有两种状态：**已跟踪**或**未跟踪**。
 
 已跟踪的文件是指被纳入版本控制管理的文件，即git已经知道的文件，这个文件的状态有:
@@ -76,16 +78,40 @@ git config --get user.name
 ```shell
 #查看当前仓库状态的命令:
 git status
+
 #简化当前仓库状态信息：
 git status -s
+
 #跟踪一个文件：
 git add <文件或目录>
+
 #查看修改文件前后对比
 git diff <--staged/--cached>
+
 #提交更新
 git commit -m '说明提交内容'
+
 #跳过暂存区直接提交
-git commit -a 
+git commit -a -m '说明内容'
+
+#上传内容到master 分支
+git push origin master
+
+#从git跟踪清单中移除某个文件(从暂存区中移除)
+git rm <filename> #这样以后的修改不会出现在未跟踪的清单中
+
+#只从暂存区中移除，文件扔保留在当前目录
+git rm --cached <filename> #也不会跟踪修改内容
+
+#删除之前修改或者已经存入暂存区的文件
+git rm <filename> -f
+
+#查看提交历史
+git log -2
+git log -p #显示提交变更内容
+git log --stat #显示简略信息
+git log --pretty=<online/short/full/fuller> #不同方式显示
+git log --pretty=format:"%h %s" --graph #图形化显示
 ```
 
 
