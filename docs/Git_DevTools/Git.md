@@ -86,6 +86,8 @@ git diff <--staged/--cached>
 git commit -m '说明提交内容'
 #跳过暂存区直接提交
 git commit -a 
+#上传内容到master 分支
+git push origin master
 ```
 
 
