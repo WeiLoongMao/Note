@@ -126,6 +126,7 @@ git remote -v
 
 #添加远程仓库
 git remote add <shortname> <url>
+git remote add weiloong git://git.xxxx.
 
 #拉取数据但不合并
 git fetch <remote>
@@ -224,3 +225,96 @@ git checkout -b <branchname> <tagname>
 
 ## Git分支
 
+Git分支，本质上仅仅是指向提交对象的可变指针。默认分支为master.
+
+git有特殊指针HEAD，用于**指向当前所在的本地分支**。
+
+```shell
+#创建分支
+git branch <branch_name>
+
+#切换分支
+git checkout <branch_name>
+
+#创建并切换分支
+git checkout -b <branch_name>
+
+#查看提交历史、各个项目的分支情况
+git log --oneline --decorate --graph --all
+
+#查看每个分支最后一次提交
+git branch -v
+
+#过滤列表中已经合并或尚未合并到当前分支的分支
+git branch --merged/--no-merged
+
+#删除分支
+git branch -d <branch_name>
+```
+
+
+
+#### 远程分支
+
+远程引用是对远程仓库的引用（指针），包括分支、标签等。
+
+```shell
+#显示查看远程引用的列表
+git ls-remote <remote>
+git ls-remote origin
+
+#获取远程分支的更多信息
+git remote show <remote>
+git remote show origin
+
+#与远程仓库同步数据，
+git fetch <remote>
+git fetch origin #查找origin是哪个服务器，抓取本地没有的数据，并更新本地数据，移动指针到更新后的位置
+
+#创建分支并跟踪远程的分支
+git checkout -b <branch_name> <remote>/<branch>
+git checkout --track origin/serverfix
+
+#设置已有的本地分支跟踪一个远程拉下来的分支，或修改正在跟踪的上游分支
+git branch -u origin/master
+git branch --set-upstream-to origin/master
+
+#查看设置的所有跟踪分支
+git branch -vv
+
+#删除远程分支
+git push origin --delete <remote>
+
+```
+
+> origin 是当运行git clone时默认的远程仓库的名字。
+>
+> 若git clone -o weiloong，那默认远程分支的名字将是weiloong/master
+
+
+
+#### 变基
+
+git中整合来自不同分支的方法：merge和rebase
+
+可以使用 rebase 命令将提交到某一分支上的所有修改都移至另一分支上
+
+```shell
+#变基到master上
+git checkout experiment
+git rebase master
+
+#取出 client 分支，找出它从 server 分支分歧之后的补丁， 然后把这些补丁在 master 分支上重放一遍，让 client 看起来像直接基于 master 修改一样
+git rebase --onto master server client
+git checkout master
+git merge client
+
+#决定将 server 分支中的修改也整合进来
+git rebase master server
+git checkout master
+git merge server
+```
+
+变基准则：**如果提交存在于你的仓库之外，而别人可能基于这些提交进行开发，那么不要执行变基***
+
+变基操作的实质是丢弃一些现有的提交，然后相应地新建一些内容一样但实际上不同的提交
