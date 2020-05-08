@@ -223,7 +223,7 @@ git checkout -b <branchname> <tagname>
 
 
 
-## Git分支
+## Git 分支
 
 Git分支，本质上仅仅是指向提交对象的可变指针。默认分支为master.
 
