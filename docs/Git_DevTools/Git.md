@@ -32,9 +32,12 @@ git config --system user.email 'your_email'
 
 ```shell
 #获取相应作用域的全部配置信息
-git config --list <--global>
+git config --global --list <--global>
 #获取当个配置
 git config --get user.name
+
+#获取当前仓库的信息
+git config --local --list
 ```
 
 
@@ -85,6 +88,9 @@ git status -s
 #跟踪一个文件：
 git add <文件或目录>
 
+#重命名文件：
+git mv <filename> <filename>
+
 #查看修改文件前后对比
 git diff <--staged/--cached>
 
@@ -94,6 +100,18 @@ git commit -m '说明提交内容'
 #跳过暂存区直接提交
 git commit -a 
 git commit -a -m '说明内容'
+
+#修改最近一次提交的commit描述内容
+git commit --amend 
+
+#修改commit历史内容,通过变基
+git rebase -i xxxx(被修改commit信息的父级)
+
+#整理过去commit，合并commit 选择策略
+git rebase -i xxx(被修改最前面commit的父级)
+
+#合并间隔的commit 调整commit顺序，将要合并的放在连续位置
+git reabse -i xxxx
 
 #上传内容到master 分支
 git push origin master
@@ -114,9 +132,13 @@ git log --stat #显示简略信息
 git log --pretty=<online/short/full/fuller> #不同方式显示
 git log --pretty=format:"%h %s" --graph #图形化显示
 
+git log --oneline -n4 --graph
+
 #取消暂存文件
 git restore --staged <文件或路径>
 git reset HARD <文件或路径>
+
+git reset --hard HEAD或commitId #回复到头指针状态
 
 #撤销文件修改（危险）
 git checkout -- <file>
@@ -139,6 +161,25 @@ git remote rename <oldname> <newname>
 
 #移除远程仓库
 git remote remove 
+
+#暂存区与HEAD比较
+git diff --cached
+
+#暂存区与工作区比较
+git diff
+
+#分支之间比较
+git diff 分支名或分支commit  分支名或分支commit
+
+#删除文件
+git rm filename
+
+#临时存储分支上修改的内容
+git stash
+git stash pop
+git stash apply
+git stash list
+
 ```
 
 
@@ -271,6 +312,9 @@ git remote show origin
 git fetch <remote>
 git fetch origin #查找origin是哪个服务器，抓取本地没有的数据，并更新本地数据，移动指针到更新后的位置
 
+#更新远程分支到本地
+git remote update origin --prune
+
 #创建分支并跟踪远程的分支
 git checkout -b <branch_name> <remote>/<branch>
 git checkout --track origin/serverfix
@@ -284,6 +328,13 @@ git branch -vv
 
 #删除远程分支
 git push origin --delete <remote>
+
+#备份仓库
+git clone --bare file://xxxx目录/.git  zhineng.git #bare不带工作区
+
+git remote add 本地仓库 远端仓库
+
+git push --set-upstream xxxx  xxxx
 
 ```
 
@@ -315,6 +366,43 @@ git checkout master
 git merge server
 ```
 
-变基准则：**如果提交存在于你的仓库之外，而别人可能基于这些提交进行开发，那么不要执行变基***
+变基准则：**如果提交存在于你的仓库之外，而别人可能基于这些提交进行开发，那么不要执行变基**
 
 变基操作的实质是丢弃一些现有的提交，然后相应地新建一些内容一样但实际上不同的提交
+
+
+
+**查看网页版命令文档**
+
+```shell
+git help --web git
+```
+
+
+
+命令查看git 类型、内容
+
+```shell
+git cat-file -t bcd972fd4
+git cat-file -p bcd972fd4
+```
+
+
+
+git 三大类型 commit、tree、blob之间关系
+
+commit -> tree -> blob
+
+
+
+#### 分离头指针
+
+```shell
+git checkout xxxxx; #此时头指针指向此commit， 如果现在直接切换到其他分支，将导致修改不会保存
+git checkout master;#现在要找回前面的修改，可以新建分支 git checkout <new-branch> xxxxx
+
+#HEAD指针不执行分支或tag，修改内容在将来是不会纳入管理保存的。
+```
+
+
+

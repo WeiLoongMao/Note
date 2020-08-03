@@ -149,5 +149,292 @@ return语句，如果未指定返回值，则默认返回undefined。
 
 ### 字面量
 
+对象字面量是一种按指定规格创建新对象的表示法。
 
+数组字面量是一种按指定规格创建新数组的表示法。
+
+正则字面量
+
+
+
+### 函数
+
+含住字面量定义了函数值。它可以有一个可选的名字，用于递归调用自己。可以指定一个参数列表，这些参数就像变量一样，在调用时由传递的实际参数初始化。
+
+函数的主体包括变量定义和语句。
+
+
+
+## 对象
+
+JavaScript简单数据包括数字、字符串、布尔值、null、undefined，其余都是值都是对象。
+
+数组是对象，函数是对象，正则表达式是对象。
+
+对象是属性的容器，每个属性都有名字和值。属性的名字可以是包括空字符串以内的任意字符串，属性值是可以除undefined值之外的任何值。
+
+JavaScript里的对象是无类型的。它对新属性的名字和属性值没有限制。
+
+对象适合用于汇集和管理数据。
+
+JavaScript包含一种原型链的特性，允许对象继承另一个对象的属性。
+
+
+
+### 检索
+
+检索对象里面包含的值，可以采用[]后缀中括住一个字符串表达式的方式。
+
+若字符串表达式是一个字符串字面量且是一个合法的标识符且不是保留字，也可以用**.**表示法。
+
+检索一个并不存在的成员属性的值，将返回undefined。
+
+|| 运算符可以用来填充默认值
+
+
+
+### 更新
+
+对象里的值可以通过赋值语句来更新。
+
+
+
+### 引用
+
+对象通过引用来传递，永远不会被复制。
+
+
+
+### 原型
+
+每个对象都连接到一个原型对象，并且它可以从中继承属性。
+
+所有通过对象字面量创建的对象都连接到Object.prototype，是JavaScript中的标配对象。
+
+**当创建一个新对象的时候，可以选择某个对象作为它的原型。**
+
+```javascript
+if(typeof Object.create !== 'function'){
+  Object.create = function(o){
+    var F = function(){};
+    F.prototype = o;
+    return new F();
+  }
+}
+var newObj = Object.create(obj);
+```
+
+
+
+**原型连接在更新时是不起作用的，当对某个对象改变时，不会触及该对象的原型**
+
+**原型连接只有在检索值的时候用到**，若尝试去访问某个对象的某个属性值，但是该对象没有此属性，则会尝试从他的原型对象中获取，如果没有，依次查找父级的原型中，至Object.prototype，如果没有，则返回undefined。这个过程称为**委托**。
+
+
+
+原型关系是一种动态关系，当添加一个新的属性到原型中，该属性会立即对所有基于giant原型创建的对象可见。
+
+
+
+### 反射
+
+检查对象并确定对象有什么属性，typeof操作符可以确定属性的类型。
+
+可以使用hasOwnProperty方法判断时都是对象独有的属性，这个方法不会检查原型链。
+
+
+
+### 枚举
+
+for in语句可以用来遍历一个对象中的所有属性。该枚举过程会列出所有的属性（包括函数和原型中的属性），常用hasOwnProperty和typeof过滤属性和函数。
+
+
+
+### 删除
+
+delete运算符可以用来删除对象的属性。如果包含该属性，则该属性被移除，不会触及原型链中的任何对象。
+
+主要作用是：删除对象的属性可以让来自原型链中的属性暴露出来。
+
+
+
+## 函数
+
+函数包含一组语句，是JavaScript的基础模块单元，用于代码复用、信息隐藏和组合调用。
+
+所谓编程，就是将一组需求分解成一组函数与数据结构的技能。
+
+
+
+### 函数对象
+
+JavaScript中的函数就是对象。对象是key/value的集合并有一个连接到原型丢下的隐藏连接。
+
+对象字面量产生的对象连接到Object.prototype，函数对象连接到Funtion.prototype(改对象本身连接到Object.prototype)。
+
+**每个函数在创建时会附加两个隐藏属性：函数上下文和实现函数行为的代码。**
+
+每个函数对象在创建的时候都有个prototype属性，它的值为拥有constructor属性且值为该函数本身的对象。
+
+```javascript
+function Person(name, age){
+  this.name = name;
+  this.age = age;
+}
+Person.prototype = { constructor: Person };
+Person.prototype.constructor === Person; //true
+```
+
+
+
+由于函数是对象，可以像其他值一样使用。函数可以保存变量、对象和数组中。
+
+**函数的与众不同是可以被调用。**
+
+
+
+### 函数字面量
+
+函数字面量可以出现在任何允许表达式出现的地方。函数也可以被定义在其他函数中。
+
+一个内部函数能访问把它嵌套在其中的父函数的参数与变量。通过字面量创建的函数对象包含一个连接到外部上下文的连接，被称为**闭包（closure）**.
+
+
+
+### 调用
+
+调用一个函数会暂停当前函数的执行，传递控制权和参数给新函数。
+
+除了定义的形参，每个函数还会接受两个附加参数： **this和arugments**
+
+this决定调用模式：
+
+- 方法调用
+- 函数调用
+- 构造器调用
+- apply调用
+
+实际参数arguments的个数与形式参数的个数不匹配的，不会导致错误，实际参数过多会被忽略，过少，则缺省值被替换为undefined，对参数值不会进行类型检查，任何类型值都可以被传递给任何参数。
+
+
+
+### 方法调用模式
+
+当一个函数被保存为对象的输一个属性时，就称为一个方法。当这个方法被调用的时候，this就被绑定到该对象。若调用表达式包含一个提取属性（.或[]），那么就被当做方法来调用。
+
+通过this可以获取他们所属对象的上下文的方法称为公共方法。
+
+
+
+### 函数调用模式
+
+当一个函数并非一个对象的属性时，那么被当做一个函数来调用。
+
+```javascript
+var sum = add(3, 4);
+```
+
+以此模式调用时，this被绑定到全局对象。
+
+可以通过内部函数访问父级函数中的定义that，绑定this上下文。
+
+```javascript
+myObject.double = function(){
+  var that = this;
+  var helper = function(){
+    that.value = add(that.value, that.value);
+  }
+  helper();
+}
+```
+
+
+
+### 构造器模式
+
+JavaScript是基于**原型继承**的语音，意味着对象可以直接从其他对象继承属性。
+
+如果在一个函数前面带上 **new**来调用，则会创建一个连接到该函数的prototype成员的对象，同时 this 也会被绑定到新对象上。
+
+```javascript
+function Person(name, age){
+  this.name = name;
+  this.age = age;
+}
+Person.prototype.getName = function(){
+  return this.name;
+}
+
+var p1 = new Person('larry', 18);
+p1.__proto__ = Person.prototype;  //创建一个连接到该函数prototype的新对象p1
+```
+
+用new前缀来调用，被称为构造器函数。
+
+
+
+### Apply调用模式
+
+JavaScript是函数式的面向对象语言，所以函数可以有方法。
+
+apply方法可以构建一个参数数组传递给调用函数，允许选择this的值。第一个参数是this，第二个数参数数组。
+
+
+
+### 参数
+
+当函数被调用的时候，会有一个隐藏的参数数组 arguments，函数可以通过此参数访问所有他被调用时传递给它的参数列表，包括没有被分配给函数声明时顶一个的形式参数的多余参数。
+
+```javascript
+function sum(){
+  var i = 0, sum = 0;
+  for(let i = 0; i < arguments.length; i++){
+    sum += arugments[i];
+  }
+  return sum;
+}
+```
+
+
+
+### 返回
+
+当一个函数被调用的识货，从第一个语句开始执行，遇到大括号结束。然后把控制权还给调用该函数的程序。
+
+reutrn语句是用来提前返回，不执行余下语句。
+
+一个函数总会返回一个值，如果没有返回值，则返回undefined。
+
+**当调用时前面加new，且返回值并不是一个对象，则返回this（该新对象）**
+
+
+
+### 异常
+
+**throw**语句中断函数的执行，应该抛出一个exception对象，该对象包含一个用来识别异常类型的name属性和一个描述性的message属性。也可以添加其他属性。
+
+**exception对象将被送到一个try语句的catch从句。**
+
+在try内抛出一个异常，控制权就跳转到catch语句。
+
+一个try语句只会有一个捕获异常的catch代码块。
+
+
+
+### 扩充类型的功能
+
+可以给基本类型扩充功能，例如可以给Object.prototype添加方法，则对所有对象都可用。
+
+```javascript
+//增加method方法后，可以省去prtotype
+Function.prototype.method = function(name, func){
+  if(!this.prototype[name]){
+    this.prototype[name] = func;
+  	return this;
+  }
+}
+Number.method('integer', function(){
+  return Math[this < 0 ? 'ceil': 'floor'](this);
+})
+```
 
