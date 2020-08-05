@@ -438,3 +438,697 @@ Number.method('integer', function(){
 })
 ```
 
+
+
+### 递归
+
+递归函数就是会直接或间接调用自身的一种函数。
+
+汉诺塔，现有三根柱子和一套直径各不相同的圆盘。目标是通过每次移动一个圆盘到另一根柱子上，最终把一堆圆盘移动到目标柱子上，过程中不可以把大圆盘放在小圆盘之上。
+
+```javascript
+function hanoi(disc, src, aux, dst){
+    if(disc > 0){
+        hanoi(disc -1, src, dst, aux);
+        console.log("move disc" + disc + ' from ' + src + ' to ' + dst);
+        hanoi(disc-1, aux, src, dst);
+    }
+}
+```
+
+
+
+### 作用域
+
+作用域控制着变量与参数的可见性及生命周期。
+
+JavaScript有函数作用域，即定义在函数中的参数和变量在函数外部是不可见的，在函数内部任何位置定义的变量，在该函数内部任意位置都课件。
+
+JavaScript并不支持块级作用域。
+
+在函数体的顶部声明函数中可能用到的所有变量，是一种比较好的做法。
+
+
+
+### 闭包
+
+作用域的好处是内部函数可以访问定义他们外部函数的参数和变量。
+
+内部函数拥有比外部函数更长的生命周期。
+
+函数可以访问它被创建时所处的上下文环境，这称为闭包。
+
+> 避免在循环中创建函数，可能带来无谓的计算。可以现在循环之外创建一个辅助函数，通过这个辅助函数再返回一个绑定了当前i值得函数。
+
+
+
+### 回调
+
+异步请求，提供一个当服务器的响应到达时随即触发的回调函数，异步函数立即返回，这样不会被阻塞。
+
+
+
+### 模块
+
+使用函数和闭包来构造模块。
+
+模块是一个提供接口却隐藏状态与实现的函数或对象，通过使用函数产生模块，可以摒弃全局变量的使用。
+
+模块模式利用了函数作用域和闭包来创建被绑定对象与私有成员的关联。
+
+模块模式的一般形式：
+
+1. 一个定义了私有变量和函数的函数
+2. 利用闭包创建可以访问私有变量和函数的特权函数
+3. 返回特权函数或保存到一个可以访问的地方
+
+```javascript
+var serial_maker = function(){
+    var prefix = '';
+    var seq = 0;
+    return {
+        set_prefix: function(p){
+            prefix = String(p);
+        },
+        set_seq: function(s){
+            seq = s;
+        },
+        gensym: function(){
+            var result = prefix + seq;
+            seq += 1;
+            return result;
+        }
+    }
+}
+
+var seqer = serial_maker();
+seqer.set_prefix('Q');
+seqer.set_seq(1000);
+var unique = seqer.gensym();
+```
+
+
+
+### 级联
+
+可以使方法返回this而不是undefined，可以启用级联。
+
+在一个几连中，可以在单独一条语句中依次调用同一个对象的很多方法。
+
+可以给那些构造"全能"接口降降温，一个接口没必要一次做太多的事情。
+
+
+
+### 柯里化
+
+函数也是值。**柯里化允许把函数与传递给它的参数相结合，产生一个新的函数。**
+
+```javascript
+var add1 = add.curry(1);
+
+Function.method('curry', function(){
+    var args = Array.prototype.slice.apply(arguments);
+    var that = this;
+    return function(){
+        return that.apply(null, args.concat([].slice.apply(arguments)));
+    }
+});
+```
+
+curry方法通过创建一个保存着原始函数和要被套用的参数的闭包来工作，返回另一个函数，该函数被调用时，会返回调用原始函数的把结果，并传递调用curry时参数加上当前调用的参数。
+
+
+
+### 记忆
+
+函数可以将先前操作的记过记录在某个对象里，从而避免重复运算，这种优化被称为记忆。
+
+通过记忆功能，可以显著减少运算量。
+
+在memo的数组里保存储结果，存储结果可以隐藏在笔包装，当函数被调用时，先检查结果是否存在，如果存在，就立即返回这个结果。
+
+```javascript
+var fibonacci = function(){
+    var memo = [0,1];
+    var fib = function(n){
+        var result = memo[n];
+        if(typeof result !== 'number'){
+            result = fib(n - 1) + fib(n - 2);
+            memo[n] = result;
+        }
+        return result;
+    }
+    return fib;
+}();
+fib(10);//主动调用11次，自己掉自己18次
+```
+
+构造带记忆功能的函数memoizer，返回一个管理memo存储和在需要时调用formula函数的recur函数。
+
+```javascript
+var memoizer = function(memo, formular){
+    var recur = function(n){
+        var result = memo[n];
+        if(typeof result !== 'number'){
+            result = formula(recur, n);
+            memo[n] = result;
+        }
+        return result;
+    };
+    return recur;
+}
+var fibonacci = memoizer([0,1], function(recur, n){
+    return recur(n-1) + recur(n-2);
+})
+
+var factorial = memoizer([1,1], function(recur, n){
+    return n * recur(n-1);
+})
+```
+
+
+
+## 继承
+
+JavaScript是弱类型语音，从不需要类型转换，对象的继承关系不是非常重要，对于一个对象来说，重要的时它能做什么，而不是它从哪里来。
+
+对于基于类的语音，对象是类的实例，且类可以从另一个类继承。
+
+JavaScript是基于**原型**的语言，意味着对象直接从其他对象继承。
+
+
+
+### 伪类
+
+JavaScript原型存在诸多矛盾，某些语法看起来像基于类的语言，这掩盖了它的原型机制。不直接让对象从其他对象继承，通过一个间接层：**通过构造器函数产生对象。**
+
+当一个函数对象被创建时，Function构造器产生的函数对象会执行类似代码：
+
+```javascript
+this.prototype = { constructor: this };
+```
+
+新函数对象被赋予一个prototype属性，值是一个包含constructor属性且属性值为该新函数的对象。
+
+prototype对象是存放继承特征的地方。
+
+每个函数都会得到一个prototype对象。
+
+当采用构造器调用模式，即用new前缀去调用一个函数时，函数执行的方式会被修改。
+
+```javascript
+//new 原理
+Function.method('new', function(){
+    //创建新对象，继承自构造器函数的原型对象
+    var that = Object.create(this.prototype);
+    //调用构造器函数，绑定tihs到新对象；
+    var other = this.apply(that, Array.prototype.slice.apply(arguments));
+    //如果返回不是一个对象，就返回该新对象
+    return (typeof other === 'object' && other) || that;
+});
+```
+
+
+
+
+
+### 原型
+
+基于原型的继承比基于类的继承在概念上更为简单：**一个新对象可以继承一个旧对象的属性。**
+
+如果有了一个想要对象，可以通过Object.create方法构造更多的实例来。
+
+
+
+### 函数化
+
+私有变量和私有函数需要通过模块模式。
+
+> 1. 创建一个新对象
+> 2. 有选择的定义私有实例变量和方法
+> 3. 给这个新对象扩充方法
+> 4. 返回那个新对象
+
+函数化模式还可以提供一个处理父类的方法的方法：
+
+```javascript
+Object.method('superior', function(name){
+    var that = this;
+    vat method = that[name];
+    return function(){
+        return method.apply(that, arguments);
+    }
+})
+```
+
+如果对象的所有状态都是私有的，那么该对象就是一个“防伪”对象。该对象的属性可以被替换或删除，但该对象的完整性不会受到损害。
+
+如果用函数化的方式创建一个对象，并且该对象的所有方法不使用this或that,那么该对象是**持久性**
+
+一个持久性对象就是一个简单功能函数的集合。
+
+
+
+### *部件
+
+可以从一套部件中把对象组装出来。
+
+```javascript
+var eventuality = function(that){
+    var registry = {};
+    that.fire = function(event){
+        var array, func, handler, i, type = typeof event === 'string' ? event: event.type;
+        //如果这个事件存在一组事件处理程序，那么遍历它们并顺序依次执行
+        if(registry.hasOwnPrototype(type)){
+            array = registry[type];
+            for(i = 0; i < array.length; i+=1){
+                handler = array[i];
+                //每个处理程序包含一个方法和一组可选的参数
+                //如果该方法是一个字符串形式的名字，那么寻找到该函数
+                func = handler.method;
+                if(typeof func === 'string'){
+                    func = this[func];
+                }
+                //调用一个处理程序
+                func.apply(this, handler.parameters || [event])
+            }
+        }
+        return this;
+    }
+    that.on = function(type, method, parameters){
+        var handler = {
+            method: method,
+            parameters: parameters
+        }
+        if(registry.hasOwnProperty(type)){
+            registry[type].push(handler);
+        }else{
+            registry[type] = [handler];
+        }
+        return this;
+    }
+    return that;
+}
+```
+
+
+
+
+
+## 数组
+
+数组是一段线性分配的内存，通过整数计算便宜并访问其中的元素。
+
+JavaScript没有数组一样的数据结构，作为代替，JavaScript提供了一种拥有一些类数组特性的对象。
+
+将数组的下标转为字符串，用其作为属性。比真的数组慢，但使用起来方便，属性的检索和更新方式与对象一样，只不过过了一个用整数作为属性名的特性。
+
+
+
+### 数组字面量
+
+数组字面量提供了非常方便创建新数组的表示法。
+
+数组字面量继承自Array.prototype
+
+对象字面量继承自Object.prototype
+
+
+
+### 长度
+
+每个数组都有一个length属性。没有上界，不会发生数组越界错误。
+
+length属性的值是这个数组的最大整数属性名加上1，它不一定等于数组里的属性的个数。
+
+如果这个字符串是一个大于等于这个数组当前的length且小于4294967295的正整数，那么这个数组的length就会被重新设置为新的小白加1。
+
+length设小将导致下标大于等于新length的属性被删除。
+
+
+
+### 删除
+
+由于JavaScript的数组就是对象，所以可以通过delete运算符来从数组中移除元素。
+
+```javascript
+delete numbers[2];//移除后值为undefined，留下一个空，但是length不变
+```
+
+可以通过splice方法，对数组做删除元素并将它替换为其他元素。
+
+由于被删除属性后的每个属性都被移除并以新的键值插入，所以对大型数组来说效率不高。
+
+
+
+### 枚举
+
+JavaScript的数组就是对象，所以可以通过for in语句来遍历一个数组的所有属性。
+
+但是for in 无法保证属性的顺序，常规的for语句可以避免这个问题。
+
+
+
+### 易混淆的店 Confusion
+
+规则：当属性名是小而连续的整数时，可使用数组，否则是用对象。
+
+JavaScript本身对于数组和对象的区别是混乱的，typeof 对数组是object
+
+现在用来区分是数组和对象可以通过：
+
+- isArray
+- Object.prototype.toString.apply(value) [object Array]
+
+
+
+### 方法
+
+数组可用的方法是被存储在Array.prototype中的函数。
+
+```javascript
+Array.method('reduce', function(f, value){
+    var i;
+    for(i = 0; i < this.length; i++){
+        value = f(this[i],value);
+    }
+    return value;
+})
+```
+
+给数组添加一个非正整数方法，数组的length不会改变。
+
+```javascript
+var data = [1,3];
+data.total = function(){
+    return this.reduce(add, 0);
+}
+data.length //2
+```
+
+
+
+### 指定初始值
+
+JavaScript的数组通常不会预置值。字面量产生的新数组都是空的，若访问不存在的元素，得到的值是undefined.
+
+JavaScript没有多为数组，但像大多数语音一样，支持元素为数组的数组。
+
+```javascript
+var matrix = [
+    [0,1,2],
+    [3,4,5],
+    [6,7,8]
+]
+```
+
+
+
+## *正则表达式
+
+JavaScript的许多特性借鉴自其它语音，语法借鉴Java，函数借鉴Scheme，原型继承借鉴Self，正则表达式借鉴Perl。
+
+处理正则表达式的方法：
+
+- regexp.exe
+- regexp.test
+- string.match
+- string.replace
+- string.search
+- string.split
+
+
+
+**^** 表示此字符串的开始，它是一个锚，指引exec不要条狗那些不想URL（non-URL-like）的前缀
+
+```javascript
+(?:([A-Za-z]+):)?
+```
+
+这个因子匹配一个协议名，但仅当它后面跟随一个：的时候才匹配。
+
+？表示这个分组可选
+
+\+ 表示这个字符类会被匹配一次或多次
+
+i 标识标识匹配字母时忽略大小写
+
+负号后面的？后缀标识这个负号是可选的
+
+
+
+### 结构
+
+有两种方法来创建一个RegExp对象，优先考虑的方法是使用正则表达式字面量。
+
+RegExp能设置3个标识，分别用字母g、i、m表示。
+
+| 标识 | 含义                       |
+| ---- | -------------------------- |
+| g    | 全局                       |
+| i    | 大小写不敏感               |
+| m    | 多行（^和$能匹配行结束符） |
+
+
+
+RegExp对象属性：
+
+| 属性       | 用法                                |
+| ---------- | ----------------------------------- |
+| global     | 存在标识g，则为true                 |
+| ignoreCase | 存在标识i，则为true                 |
+| lastIndex  | 下一次exec匹配开始的索引，初始值为0 |
+| multiline  | 存在标识m，则为true                 |
+| source     | 正则表达式源码文本                  |
+
+
+
+### 正则表达式分支
+
+一个正则表达式分支包含一个或多个正则表达式序列，这些序列被 | 字符分隔。
+
+一个正则表达式序列包含一个或多个正则表达式因子，每个因子能选择是否跟随一个量词，这个量词决定这个因子被允许出现的次数，默认匹配一次。
+
+
+
+### 正则表达式分组
+
+分组有4种：
+
+- 捕获型
+- 非捕获型
+- 向前正匹配
+- 向前负匹配
+
+
+
+
+
+## 方法
+
+JavaScript包含一套小型可用在标准类型上的标准方法集。
+
+
+
+### Array
+
+**array.concat(item...)**
+
+concat方法产生一个新数组，包含一份array的浅复制（shallow copy）并把一个或多个参数item附加在其后。
+
+**array.join(separator)**
+
+join方法把一个array构造成一个字符串。用separator连接，默认连接符号是逗号。
+
+**array.pop(item...)**
+
+pop方法移除array中的最后一个元素并返回该元素，如果该数组是empty，则返回undefined。
+
+**array.push(item...)**
+
+push方法把一个或多个参数item附加到一个数组的尾部，和concat不同的时，它会修改array。
+
+**array.reverse()**
+
+reverse方法反转array里面的元素顺序，并返回array本身。
+
+**array.shift()**
+
+shift方法移除数组array中的第一个元素并返回该元素。
+
+**array.unshift(item...)**
+
+用于把元素添加到数组中，查到开始部分，返回array的新length
+
+**array.slice(start, end)**
+
+slice方法对array中的一段做浅复制。
+
+**array.sort(comparefn)**
+
+sort方法对array中的内容进行排序，不能正确给一组数字排序。
+
+>JavaScript的默认比较函数时要被排序的元素都视为字符串。所以需要使用自己的比较函数来替换默认的比较函数
+
+**array.splice(start, deleteCount, item...)**
+
+splice方法从array中移除一个或多个元素，并用新的item替换他们。
+
+主要用处是从一个数组中删除元素，注意和slice（截取一段）区别。
+
+
+
+
+
+### Function
+
+**function.apply(thisArg,argArray)**
+
+apply方法调用function，传递一个会被绑定到this上的对象和一个可选的数组作为参数。
+
+
+
+### Number
+
+**number.toExponential(fractionDigits)**
+
+toExponential方法把这个number转为指数形式的字符串
+
+
+
+**number.toFixed(fractionDigits)**
+
+toFixed方法把number转为一个十进制形式的字符串
+
+**number.toPrecision(precision)**
+
+将number转换为一个十进制数形式的字符串
+
+**number.toString(radix)**
+
+将number转字符串，radix控制基数。
+
+
+
+### Object
+
+**object.hasOwnPropperty(name)**
+
+
+
+
+
+### RegExp
+
+
+
+### String
+
+
+
+
+
+
+
+## 代码风格
+
+
+
+
+
+## 优美的特性
+
+1. 函数时顶级对象，函数时有词法作用于的闭包
+2. 基于原型继承的动态对象，对象是无类别的。可以通过普通的赋值给任何对象增加一个新成员属性，一个对象可以从另一个对象继承成员属性。
+3. 对象字面量和数组字面量
+
+
+
+## 毒瘤
+
+### 全局变量
+
+
+
+### 作用域
+
+
+
+### 自动插入分号
+
+不合时宜的插入分号导致问题，例如return语句后自动插入分号导致返回undefined。
+
+```javascript
+return 
+{
+    status: true;
+}
+//自动插入分号导致返回undefined。
+```
+
+
+
+### parseInt
+
+parseInt把字符串转为整数的函数，遇到非数字会停止解析。
+
+
+
+### + 
+
+\+运算符可以用于加法和字符串连接。
+
+做+运算，需确保两个运算数都是整数。
+
+
+
+### 浮点数
+
+二进制的浮点数不能正确的处理十进制的小数。
+
+
+
+### NaN
+
+是一个特殊的数量值，它表示的*不是一个数字*，尽管typeof NaN 为number.
+
+
+
+### 伪数组
+
+
+
+### 对象
+
+JavaScript的对象永远不会是真的空对象，它们可以从原型链中取得成员属性。
+
+
+
+
+
+## 糟粕
+
+### ==
+
+
+
+### with语句
+
+本意用来快捷访问对象属性
+
+
+
+### eval
+
+eval函数传递一个字符串给JavaScript编译器，并执行其结果。
+
+eval使得代码难以阅读、性能下降、安全性降低。
+
+
+
+### continue语句
+
+
+
+### switch
+
