@@ -12,4 +12,5 @@ module.exports = [
     },
   ],
   ["@vuepress/nprogress"],
+  ['@vuepress/back-to-top']
 ]

@@ -18,6 +18,7 @@ module.exports = {
     nav:nav,
     displayAllHeaders: true,
     activeHeaderLinks: true,
-    sidebar: sidebar
+    sidebar: sidebar,
+    sidebarDepth: 1
   },
 };

@@ -1,4 +1,4 @@
-# ES6 入门
+# ES6
 
 ## ES6 环境配置
 
@@ -58,9 +58,7 @@ npm install --save @babel/polyfill
 
 
 
-### 
-
-## let 和const
+## let 和 const
 
 ### let
 
@@ -82,7 +80,7 @@ let命令用来声明变量，所声明的变量只在let命令所在的代码�
 >
 > ```javascript
 > if(true){
->   temp = 'abc'; //reference
+>   temp = 'abc'; //ReferenceError
 >   let temp;
 > }
 > ```

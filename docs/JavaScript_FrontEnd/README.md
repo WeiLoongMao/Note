@@ -1,1 +1,1 @@
-# JavaScript READ ME~
+# JavaScript READ ME
