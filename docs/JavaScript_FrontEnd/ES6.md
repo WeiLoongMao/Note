@@ -2439,3 +2439,413 @@ function createWebService(baseUrl){
 ```
 
 Proxy也可以实现数据库的ORM层
+
+
+
+## Reflect
+
+Reflect是ES6为了操作对象提供的新API。Reflect对象的设计目的：
+
+- 将Object对象的内部方法比如Object.defineProperty,放到Reflectr对象上，即可以从Reflect对象上拿到语言内部的方法
+
+- 修改某些Object方法的返回结果，让其更合理。
+
+  > Object.definePrperty(obj,name, desc)在无法定义属性时，会抛出一个错误
+  >
+  > Reflect.defineProperty(obj, name, desc) 则返回false
+
+- 让Object操作变成函数行为
+
+  > name in obj => Reflect.has(obj, name)
+  >
+  > delete obj[name] => Reflect.deleteProperty(obj, name)
+
+- Reflect对象的方法和Proxy对象的方法一一对应。只要是Proxy对象的方法就能在Reflect对象上找到对应的方法。这就使得Proxy对象方便调用Reflect方法，完成默认行为，不管Proxy如何修改默认行为，总可以在Reflect上获取默认行为
+
+  ```javascript
+  Proxy(target, {
+      set(target, name, value, receiver){
+          var success = Reflect.set(target, name, value, receiver);
+          if(success){
+              console.log('property' + name + ' on ' + target + ' set to ' +value);
+          }
+          return successs;
+      }
+  })
+  //Proxy方法拦截target对象的属性赋值行为。
+  //采用Reflect.set方法将值赋值给对象的属性，确保完成原有的行为，再部署额外的功能
+  ```
+
+  ```js
+  var loggerObj = new Proxy(obj, {
+      get(target, name){
+          console.log('get', target, name);
+          return Reflect.get(target, name);
+      },
+      deleteProperty(target, name){
+          console.log('delete' + name);
+          return Reflect.deleteProperty(target, name);
+      },
+      has(target, name){
+          console.log('has' + name);
+          return Reflect.has(target, name);
+      }
+  })
+  //每个Proxy对象的拦截操作，内部都调用对应的Reflect方法，保证原生行为能够正常秩序，只是将每一个操作输出一行日志。
+  
+  Funcation.prototype.apply.call(Math.floor, undefined, [1.75]);
+  //新写法
+  Reflect.apply(Math.floor, undefined, [1.75])
+  ```
+
+
+
+### 静态方法
+
+Reflect对象一共有13个静态方法：
+
+- Reflect.apply(target, thisArg, args)
+- Reflect.construct(target, args)
+- Reflect.get(target, name, receiver)
+- Reflect.set(target, name, value, receiver)
+- Reflect.defineProperty(target, name, desc)
+- Reflect.deleteProperty(target, name)
+- Reflect.has(target, name)
+- Reflect.ownKeys(target)
+- Reflect.isExtensible(target)
+- Reflect.preventExtensions(target)
+- Reflect.getOwnPropertyDescriptor(target, name)
+- Reflect.getPrototypeOf(target)
+- Reflect.setPrototypeOf(target, prototype)
+
+上述犯法大部分与Object对象的同名方法的作用相同，且与Proxy对象的方法是一一对应的。
+
+
+
+**Reflect.get(target, name, receiver)**
+
+该方法查找并返回target对象的name属性，如果没有，返回undefined。
+
+如果name属性部署了读取函数，则读取函数的this绑定receiver
+
+```javascript
+var obj = {
+    foo:1,
+    bar: 2,
+    get baz(){
+        return this.foo+this.bar;
+    }
+}
+Reflect.get(obj, 'baz');//3
+
+var receiverObj = {
+    foo: 3,
+    bar: 4
+}
+Reflect.get(obj, 'baz', receiverObj);//7
+```
+
+
+
+**Reflect.set(target, name, value, receiver)**
+
+该方法设置targert对象name属性等于value
+
+如果name属性设置了赋值函数，则赋值函数的this绑定receiver。
+
+> 注意：若Proxy和Reflect对象联合使用，前置拦截赋值操作，后者完成赋值的默认行为
+>
+> 当传入receiver时，Reflect.set会触发Proxy.definePropery拦截。
+
+```javascript
+let p = {
+    a: '1';
+}
+let handler = {
+    set(target, name, value, receiver){
+        console.log('set');
+        Reflect.set(target, name, value, receiver);
+    },
+    
+    defineProperty(target, key, attribute){
+        console.log('defineProperty');
+        Reflect.defineProperty(target, key, attribute);
+    }
+}
+
+let obj = new Proxy(p, handler);
+obj.a = 'A';
+//set
+//defineProperty
+//Reflect.set如果没有传入receiver，就不会触发defineProperty
+```
+
+
+
+**Reflect.construct(target, args)**
+
+该方法等用于new target(...args)， 这提供了一种不使用new，来调用狗仔函数的方法
+
+```javascript
+function Greeting(name){
+    this.name = name;
+}
+const instance = new Greetingz('larry');
+//Reflect.construct写法
+const instance = Reflect.construct(Greeting, ['larry'])
+```
+
+
+
+**Reflect.getPtototypeOf(obj)**
+
+该法用于读取对象\_\_protot\_\_属性，对应Object.getPtototypeOf（obj）方法
+
+```js
+Object.getPrototypeOf(obj);
+
+Reflect.getPrototype(obj);
+//两者区别：如果参数不是对象，Object.getPrototypeOf(obj)会将参数转为对象，而Relect.getPrototypeOf会报错。
+```
+
+
+
+**Reflect.setPrototypeOf(obj, new Proto)**
+
+该方法用于设置目标对象的原型prototype，对应Object.setPrototypeOf。返回一个布尔值，表示是否成功。
+
+
+
+**Reflect.apply(func, thisArg, args)**
+
+该方法等同于Function.prototype.apply.call(func, thisArg, args)，用于绑定this对象后执行给定的函数。
+
+一般要绑定一个函数的this对象，fn.apply(obj, args)
+
+若函数定义了自己的apply方法，只能写成Function.prototype.apply.call(fn, obj, args),简化Reflect.apply
+
+
+
+**Reflect.defineProperty(targrt, propKey, attributes)**
+
+该方法基本与Object.defineProperty，用来为对象定义属性。
+
+未来逐渐废弃，开始使用Reflect.defineProperty
+
+
+
+**Reflect.isExtensible(target)**
+该方法返回一个布尔值，表示当前对象是否可扩展，是否可添加新属性
+
+
+
+**Reflect.preventExtensions(target)**
+
+该方法用于将对象变为一个不可扩展的对象，返回一个布尔值，表示操作是否成功。
+
+
+
+### 使用Proxy实现观察者模式
+
+观察者模式Observer mode指函数自动观察数据对象，一旦发生变化，函数自动执行。
+
+```js
+const queuedObservers = new Set();
+const observe = fn => queuedObservers.add(fn);
+const observable = obj => new Proxy(obj, handler);
+
+let handler = {
+    set(target, key, value, receiver){
+        const result = Reflect.set(target, key, value, receiver);
+        queuedObservers.forEach(observer => observer());
+        return result;
+    }
+}
+//先定义一个Set集合，所有观察者函数都放入集合。
+//observable函数返回原始对象的代理，拦截赋值操作
+//拦截函数set中，会自动执行所有观察者
+//就是在改变对象是，拦截赋值操作后，执行观察者函数
+
+const person = observable({
+    name: 'larry',
+    age: 22
+})
+
+function print(){
+    console.log(`${person,name}, ${person.age}`);
+}
+
+observe(print);
+//数据对象person是观察的目标，函数print是观察者，一旦person变化，print自动执行
+
+```
+
+
+
+## Promise对象
+
+Promise是异步编程的一种解决方案，比回调函数和事件合理。
+
+ES6原生提供了Promise对象。
+
+所谓Promise对象，就是一个容器，里面保存着某个未来才会结束的事件，通常是一个异步操作的结果。
+
+从语法上说，Promise是一个对象，从它可以获取操作的消息。
+
+Promise对象有两个特点：
+
+- 对象的状态不受外界影响。Promise对象代表一个异步操作，有三种状态：pending、fulfilled、rejected。异步操作的结果可以决定哪一种状态，任何其他操作都无法改变。
+
+- 一旦状态改变，就不会再变，任何时候都可以得到这个结果。状态改变只有两种可能：
+
+  - pending->fulfilled
+  - pending->rejected
+
+  如果改变已经发生，即使再对Promise对象添加回调函数，也会立即得到这个结果，而事件一旦错过，再监听也得不到结果。
+
+Promise缺点：
+
+- 无法取消Promise，一旦新建会立即执行，无法中途取消
+- 若不设置回调函数，Promise内部抛出错误，不会反应到外部
+- 当处于pending状态，无法得知目前进入到哪一阶段
+
+
+
+### 基本用法
+
+ES6规定，Promise对象是一个构造函数，用来生成Promise实例。
+
+```javascript
+const promise = new Promise(function(resolve, reject){
+    if(/*异步成功*/){
+       resolve(value);
+	}else{
+       reject(error);
+	}
+})
+```
+
+Promise构造函数接受一个函数作为参数，该函数两个参数resolve, reject，他们是起来那个歌函数，由JavaScript引擎提供。
+
+resolve函数的作用，在状态变为resolved，异步操作成功时调用，并将异步操作结果作为参数传递出去；
+
+reject函数作用，异步操作失败的时候调用，并将异步操作报错的错误作为参数传递出去。
+
+Promise实例生成以后，**可以用then方法分别指定resoved状态和rejected状态的回调函数。**
+
+```js
+promise.then(function(value){},function(error){})
+```
+
+then方法接受两个回调函数作为参数，第一个参数是resolved时调用，第二个参数是rejected时调用（可选）
+
+
+
+```js
+function timeout(ms){
+    return new Promise((resolve, reject) => {
+        setTimeout(resovle, ms, 'done');
+    })
+}
+
+timeout(100).then((value) => {
+    console.log(value);
+})
+```
+
+
+
+```js
+//异步加载图片
+function loadImageAsync(url){
+    return new Promise((resolve, reject) =>{
+        const image = new Image();
+        image.onload = function(){
+            resolve(image);
+        };
+        
+        image.onerror = function(){
+            reject(new Error('COULD NOT LOAD IMAGE AT '+ url ))
+        };
+        
+        image.src = url;
+    })
+}
+```
+
+
+
+```javascript
+//Promise实现Ajax请求
+const getJSON = function(url){
+    const promise = new Promise(function(resolve, reject){
+        const handler = function(){
+            if(this.readyState !== 4) {
+                return;
+            }
+            if(this.status === 200){
+                resolve(this.response);
+            }else{
+                reject(new Error('this.statusText'));
+            }
+        };
+        const client = new XMLHttpRequest();
+        client.open('GET', url);
+        client.onreadystatechange = handler;
+        client.responseType = 'json';
+        client.setRequestHeader('Accept','application/json');
+        client.send()
+    });
+    return promise;
+}
+
+getJSON('post.json').then(function(json){
+    console.log(json);
+}, function(error){
+    console.log(error)
+})
+```
+
+
+
+resolve函数的参数除了正常值以外，还可以是另一个Promise实例。
+
+```js
+const p1 = new Promise(function(resolve, reject){
+    //...
+})
+
+const p2 = new Promise(function(resolve, reject){
+    resolve(p1);
+})
+//p1的状态会传递给p2,即p1的状态决定p2的状态。如果p1为pending,则p2回调函数会等待p1.
+```
+
+注意：resolve或reject并不会终结Promise的参数函数的执行。
+
+```js
+new Promise((resolve, reject) =>{
+    resolve(1);
+    console.log(2);
+}).then(r =>{console.log(2)});
+//2
+//1
+```
+
+一般来说，调用resolve或reject以后，Promise的使命就完成了，后续操作应该放到then方法里面，而不是直接写在resolve或reject后面，所以最好加上return语句，后面的语句就不会执行了。
+
+
+
+### Promise.prototype.then()
+
+Promise实例具有then方法，即then方法是定义在原型对象Promise.prototype上的，作用是为实例Promise添加状态改变时的回调函数。
+
+then方法返回的是一个**新的Promise实例**，所以可以链式写法，即then方法后面再调用另一个then方法。
+
+采用链式的then，可以指定一组按照次序调用的回调函数。前一个回调函数返回还是一个Promise对象（即有异步操作），这时后一个回调就会等待Promise对象的状态发生变化才会被调用。
+
+
+
+### Promise.prototype.catch()
+
+Promise.prototype.catch方法是.then(null, rejection)或.then(undefined, rejection)的别名，用于指定发生错误时的回调函数。
