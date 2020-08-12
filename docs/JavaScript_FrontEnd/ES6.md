@@ -2849,3 +2849,202 @@ then方法返回的是一个**新的Promise实例**，所以可以链式写法�
 ### Promise.prototype.catch()
 
 Promise.prototype.catch方法是.then(null, rejection)或.then(undefined, rejection)的别名，用于指定发生错误时的回调函数。
+
+Promise对象的错误具有冒泡性质，会一直向后传递，直到被捕获位置。
+
+一般来说，不要在then()方法里面定义Reject状态回调函数（即then的第二个参数），总是使用catch方法。
+
+```javascript
+promise
+  .then(function(data){}).catch(function(err){})
+```
+
+
+
+和传统的try/catch代码块不同的是，如果没有catch方法指定错误处理的回调函数，Promise对象抛出的错误不会传递到外层。
+
+NodeJs有一个unhandledRejection事件，用于监听未捕获的reject错误。
+
+```javascript
+process.on('unhandledRejection', function(err, p){ throw err;})
+```
+
+注意，未来可能会废除，如有未捕获错误，直接终止进程，且退出码不为0
+
+一般建议，Promise对象后面要跟catch方法，这样可以处理Promise内部发生的错误。
+
+catch方法返回一个Promise对象，所以后面可以继续掉then方法。如果没有报错，会跳过catch方法，直接执行后面的then方法。
+
+
+
+### Promise.prototype.finally()
+
+finally方法用于指定不管Promise对象最后状态如何，都会执行的操作。
+
+finally方法回调函数不接受任何参数，这就意味着不知道前面Promise状态，所以finally操作应该与状态无关，不依赖与Promise的执行结果。
+
+finally本质上是then方法的特例。
+
+```js
+Promise.prototype.finally = function(callback){
+    let P = this.constructor;
+    return this.then(
+    	value => P.resolve(callback()).then(()=>value),
+        reason => P.resolve(callback()).then(()=>{ throw reason })
+    )
+}
+```
+
+finally总是返回原来的值。
+
+
+
+### Promise.all()
+
+该方法多用于多个Promise实例，包装成一个新的Promise实例。
+
+```js
+const p = Promise.all([p1,p2,p3]);
+```
+
+参数都是Promise的实例，如果不是，会先调用Promise.resolve方法，将参数转换为Promise实例。
+
+Promise.all参数可以不是数组，但是必须具有Iterator接口，且返回的每个成员都是Promise的实例。
+
+p的状态由p1,p2,p3决定。
+
+- p1,p2,p3状态都是fulfilled，则p状态为fulfilled，此时返回一个数组，传递给p的回调函数
+- 只要有其中一个是rejected，则p状态是rejected,此时第一个被rejected的实例的返回值，会传递给p的回调函数
+
+
+
+注意：若作为参数的Promise的实例有自己的catch方法，则被rejected时，并不会触发Promise.all的catch方法。
+
+
+
+### Promise.race()
+
+该方法是将多个Promise实例，包装成一个新的Promise实例。
+
+只要其中一个实例率先改变状态，p的状态就跟着改变，那个首先改变的Promise实例的返回值，就传递给p的回调函数。
+
+
+
+### Promise.allSettled()
+
+该方法接受一组Promise实例为参数，包装成一个新的Promise实例，只有等到所有这些参数实例都返回结果，不管是fulfilled还是rejected，包装实例才会结束。ES2020引入。
+
+```javascript
+const promises = [
+    fetch('/api-1'),
+    fetch('/api-2'),
+	fetch('/api-3')
+]
+await Promise.allSettled(promises);
+removeLoading();
+//只有等三个请求都结束，加载的图标消失。
+```
+
+当不关心异步操作结果，只关心这些操作有没有结束，此时Promise.allSettled方法很有用。
+
+
+
+### Promise.any()
+
+该方法接受一组Promise实例作为参数，包装为一个新的Promise实例，只要参数实例一个变为fulfilled状态，包装实例就会变为fulfilled状态，所有的参数实例都为rejected，包装实例才会变成rejected.
+
+
+
+### Promise.resolve()
+
+该方法将现有对象转为Promise对象。
+
+```js
+const jsPromise = Promise.resolve($.ajax('.whatever.json'));
+
+Promise.resolve('foo');
+//等价于
+new Promise(resove => resolve('foo'))
+```
+
+参数分为四种情况：
+
+- 参数是一个Promise实例，则不作任何更改，返回这个实例
+
+- 参数是一个thenable对象，Promise.resolve会将这个对象转为Promise实例并立即执行thenable对象的then方法
+
+  > thenable对象指具有then方法的对象
+  >
+  > ```js
+  > let thenable = {
+  >     then: function(resolve, reject){
+  >         resolve(42);
+  >     }
+  > }
+  > 
+  > let p1 = Promise.resolve(thenable);
+  > p.then(function(value){
+  >     console.log(value);
+  > })
+  > ```
+
+- 参数不具有then方法的对象或根本就不是对象
+
+  > 如果参数是一个原始值，或不具有thenable方法的对象，则返回一个新的Promise对象且状态为resolved。
+  >
+  > ```js
+  > const p = Promise.resolve('hello');
+  > p.then(function(s){
+  >     console.log(s);//hello
+  > })
+  > ```
+
+- 不带任何参数，则直接返回一个resolved状态的Promise对象。
+
+  > 如果希望得到一个新的Promise对象，就可以直接调用Promise.resolve()方法
+  >
+  > ```javascript
+  > const p = Promise.reslove();
+  > p.then(function(){})
+  > ```
+
+注意：立即resolve()的Promise对象，是在本轮"事件循环"的结束时执行，而不是在下一轮事件循环开始。
+
+```javascript
+setTimeout(function(){
+    console.log('3');
+},0);
+Promise.resolve().then(function(){
+    console.log('2');
+});
+console.log('1');
+```
+
+
+
+### Promise.reject()
+
+该方法也会返回一个新的Promise实例，状态为rejected，且立即执行回调函数。
+
+```javascript
+const p = Promise.reject('error');
+//等同于
+const p = new Promise((resolve,reject) => reject('error'));
+p.then(null, function(s){
+    console.log(s);
+})
+```
+
+注意：该方法的参数会原封不动的作为reject的理由，变成后续方法的参数。
+
+```javascript
+const thenable = {
+    then(resolve, reject){
+        reject('error');
+    }
+}
+Promise.reject(thenable).catch(e => {
+    console.log(e === thenable);//true
+})
+```
+
