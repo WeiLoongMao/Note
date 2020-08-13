@@ -2725,7 +2725,7 @@ const promise = new Promise(function(resolve, reject){
 })
 ```
 
-Promise构造函数接受一个函数作为参数，该函数两个参数resolve, reject，他们是起来那个歌函数，由JavaScript引擎提供。
+Promise构造函数接受一个函数作为参数，该函数两个参数resolve, reject，他们是两个函数，由JavaScript引擎提供。
 
 resolve函数的作用，在状态变为resolved，异步操作成功时调用，并将异步操作结果作为参数传递出去；
 
@@ -3047,4 +3047,422 @@ Promise.reject(thenable).catch(e => {
     console.log(e === thenable);//true
 })
 ```
+
+
+
+### 应用
+
+```javascript
+//加载图片
+const preloadImage = function(path){
+    return new Promise(function(resolve, reject){
+        const image = new Image();
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = path;
+    })
+}
+```
+
+
+
+### Promise.try()
+
+有时不想区分，函数f是同步函数还是异步函数，但是想用Promise处理，都用then方法指定下一步流程，用catch方法处理f抛出的错误。
+
+```js
+const f = () => console.log('now');
+Promise.resolve().then(f);
+console.log('next');
+```
+
+
+
+让同步函数同步执行，异步函数异步执行，并且具有统一的API
+
+```javascript
+const f = () =>console.log('now');
+(async ()=> f())().then();//立即执行，会立即执行async函数，如果f是同步的，会立即同步执行，如果f是异步的，就可以用下一步.then方法
+console.log('next');
+
+//方法二
+const f = () =>console.log('now');
+(
+	()=>new Promise(resolve => resolve(f()))
+)();
+console.log('next')
+```
+
+Promise.try方法就是替代上面的写法：
+
+```javascript
+const f = () => console.log('now');
+Promise.try(f);
+console.log('next')
+```
+
+由于Promise.try为所有操作提供了统一的处理机制，所以若想用then方法管理流程，最好都用Promise.try包装一下。
+
+```javascript
+Promise.try(()=>database.users.get({id: userId})).then(...).catch(...)
+```
+
+事实上，Promise.try就是模拟try代码块
+
+
+
+
+
+## Iterator和for...of循环
+
+JavaScript表示集合的数据结构：
+
+- Array
+- Object
+- Map
+- Set
+
+所以需要统一的接口机制来处理所有不同的数据结构。
+
+遍历器Iterator就是这样一种机制。它是一种借口，为各种不同的数据结构提供统一的访问机制，任何数据结构只要部署Iterator接口，就可以完成遍历操作。
+
+Iterator的作用：
+
+- 为各种数据结构提供统一、简便的访问接口
+- 使得数据结构的成员能够按照某种次序排列
+- Iterator接口主要供ES6的for...of消费
+
+Iterator的遍历过程：
+
+1. 创建一个指针对象，指向当前数据结构的起始位置。
+
+   > 遍历器的本质就是一个只针对象
+
+2. 第一次调用指针对象的next方法，可以将指针指向数据结构的第一个成员
+
+3. 不断调用指针对象的next方法，直到指向数据结构的结束为止
+
+每一次调用next方法，都会返回数据结构的当前成员的信息。
+
+```javascript
+function makeIterator(array){
+    var nextIndex = 0;
+    return {
+        next: function(){
+            return nextIndex < array.length ? 
+                { value: array[nextIndex++], done: false}:
+            	{ value: undefined, done: true }
+        }
+    }
+}
+
+var it = makeIterator(['a', 'b']);
+it.next();
+it.next();
+it.next();
+```
+
+
+
+### 默认Iterator接口
+
+当使用for...of循环遍历某种数据结构时，该循环会自动寻找Iterator接口
+
+一种数据结构只要部署了Iterator接口，就可以认为这种数据接口是可遍历的
+
+ES6规定，默认的Iterator接口部署在数据结构Symbol.iterator属性，或者说，一个数据结构只要具有Symbol.iterator属性，就可以认为是可遍历的
+
+
+
+原生具备Iterator接口的数据结构：
+
+- Array
+- Map
+- Set
+- String
+- TypedArray
+- 函数的arguments对象
+- NodeList对象
+
+```javascript
+let arr = ['a', 'b', 'c'];
+let iter = arr[Symbol.iterator]();
+iter.next();
+iter.next();
+...
+```
+
+
+
+对象没有默认部署Iterator接口，因为不确定属性遍历的先后顺序，本质上，遍历器是一种线性处理。
+
+对于任何非线性的数据接口，部署遍历器接口，就等于部署一种线性转换。
+
+```javascript
+function Obj(value) {
+  this.value = value;
+  this.next = null;
+}
+
+Obj.prototype[Symbol.iterator] = function() {
+  var iterator = { next: next };
+
+  var current = this;
+
+  function next() {
+    if (current) {
+      var value = current.value;
+      current = current.next;
+      return { done: false, value: value };
+    } else {
+      return { done: true };
+    }
+  }
+  return iterator;
+}
+
+var one = new Obj(1);
+var two = new Obj(2);
+var three = new Obj(3);
+
+one.next = two;
+two.next = three;
+
+for (var i of one){
+  console.log(i); // 1, 2, 3
+}
+```
+
+
+
+### 调用Iterator接口场合
+
+除了for...of，还有以下几个场合调用Iterator接口：
+
+- 解构赋值
+
+  ```javascript
+  //对数组和Set结构进行解构赋值时，会默认调用Symbol.iterator方法
+  let set = new Set().add('a').add('b').add('c');
+  let [x,y] = set;
+  let [first, ...rest] = set;
+  ```
+
+- 扩展运算符
+
+  ```javascript
+  var str = 'hello';
+  [...str];
+  ```
+
+- yield*
+
+  yield*后面跟的时一个可遍历的结构，会调用该结构的遍历器接口
+
+- 由于数组的遍历会调用遍历器接口，所以任何接受数组作为参数的场合，其实都调用了遍历器接口
+
+  - for ... of
+  - Array.from()
+  - Map()，Set()，WeakMap()，WeakSet()
+  - Promise.all()
+  - Promise.race()
+
+
+
+### 字符串Iterator接口
+
+字符串是一个类似数组的对象，也具有原生的Iterator接口
+
+可以覆盖原生的Symbol.iterator方法，达到修改遍历器行为的母的：
+
+```javascript
+var str = new String('hi');
+[...str];
+str[Symbol.iterator] = function(){
+    return {
+        next: function(){
+            if(this._first){
+                this._first = false;
+                return { value: 'bye', done: false}
+            }else{
+                return { done: true}
+            }
+        },
+        _fisrt: true
+    }
+}
+[...str]
+```
+
+
+
+### Iterator接口与Generator函数
+
+Symbol.iterator方法的最简单实现，还是使用Generator函数
+
+```javascript
+let iterable = {
+    [Symbol.iterator]: function* (){
+        yield 1;
+        yield 2;
+        yield 3;
+    }
+}
+[...itarable];
+```
+
+上述代码只要用yield命令给出每一步的返回值即可。
+
+
+
+### 遍历对象的 return(), throw()
+
+遍历器对象除了next方法，还具有return和throw方法
+
+return方法的使用场合：
+
+- 若for...of循环提前退出，就会调用return方法
+- 若一个对象在完成遍历前，需要清理或释放资源，就可以部署return方法
+
+```javascript
+function readLinesSync(file){
+    return {
+        [Symbol.iterator](){
+            return {
+                next(){
+                    return {done: false}
+                },
+                return(){
+                    file.close();
+                    return {done: true}
+                }
+            }
+        }
+    }
+}
+
+//情况一
+for(let line of readLinesSync(fileName)){
+    console.log(line);
+    break;
+}
+//情况二
+for(let line of readLinesSync(fileName)){
+    console.log(line);
+    throw new Error()
+}
+```
+
+注意： return方法必须返回一个对象，这是Generator决定的
+
+
+
+### for...of循环
+
+ES6引入for...of循环，遍历所有数据结构的统一方法。
+
+一个数据结构只要部署了Symbol.iterator属性，就被视为具有iterator接口
+
+
+
+数组原生具备iterator接口，可以用for...of替换数组实例的forEach
+
+
+
+Set和Map结构也具有原生的Iterator接口，可以直接使用for...of
+
+
+
+计算生成的数据结构，比如ES6的数组、Set、Map都部署了以下三个方法，调用后都返回遍历器对象。
+
+- entries()返回一个遍历器对象
+- keys()返回一个遍历器对象，用来遍历所有键名
+- values()返回一个遍历器对象，用来遍历所有键值
+
+
+
+类数组的对象，包括字符串、DOM、 NodeList对象、arguments对象。
+
+并不是所有类数组的对象都具有Iterator接口，可以通过Array.from方法将其转为数组。
+
+
+
+对于普通对象，for...of结构不能直接使用，必须部署iterator接口后才能使用。
+
+可以通过使用Object.keys方法将对象的键名生成一个数组，然后遍历这个数组
+
+```javascript
+for(var key of Object.keys(obj)){
+    console.log(key + ':' + obj[key])
+}
+```
+
+使用Generator函数将对象重新包装：
+
+```javascript
+function* entries(obj){
+    for(let key of Object.keys(obj)){
+        yield[key, obj[key]];
+    }
+}
+
+for(let [key, value] of entries(obj)){
+    console.log(key, '->', value)
+}
+```
+
+
+
+与其他遍历比较：
+
+- 原始遍历方法for循环
+- 数组内置forEach方法
+- for..in循环遍历数组的键名（主要为遍历对象设计，不适用于遍历数组）
+
+
+
+## Generator 函数的语法
+
+Generator函数是ES6提供的一种异步编程解决方案，语法行为与传统函数完全不同。
+
+从语法上，可以将Generator理解为一个状态机，封装了多个内部状态，执行Generator函数会返回一个遍历器对象。
+
+形式上，Generator函数是一个普通函数，有两个特征：
+
+- function关键字和函数名之间有星号
+- 函数体内使用yield表达式，定义不同的内部状态
+
+```javascript
+function* helloWorldGenerator(){
+    yield 'hello';
+    yield 'world';
+    return 'ending'
+}
+var hw = hellowWorldGenerator();
+```
+
+
+
+调用Generator函数后，该函数并不执行，返回的也不是函数允许的结果，而是一个指向内部状态的指针。
+
+下一步必须调用遍历器对象的next方法，使得指针移向下一个状态。
+
+每次调用next方法，内部指针就会从函数头部或上一次停下的地方开始执行，知道遇到下一个yield表达式或return语句为止。
+
+Generator函数时分段执行的，yield表达式是暂停执行的标记，next方法是恢复执行。
+
+调用Generator函数，返回一个遍历器对象，代表函数内部指针。
+
+
+
+### yield表达式
+
+yield表达式就是暂停标志。
+
+遍历器对象的next方法的逻辑：
+
+1. 遇到yield表达式就暂停后面的操作，并将紧跟在yield后面的那个表达式的值，作为返回的对象的value属性值。
+2. 下一次调用next方法时，继续执行，直到遇到下一个yield表达式。
+3. 如果没有遇到新的yield表达式，就一直执行到函数结束，return语句，并将return语句后面的表达式作为返回对象的value属性值。
+4. 如果没有return语句，则返回对象的value属性值为undefined。
 
