@@ -4207,3 +4207,353 @@ run(gen);
 
 ### co模块的源码
 
+
+
+## async函数
+
+ES2017引入async函数，使得异步操作变得更加方便。
+
+async函数时Generator函数的语法糖。
+
+对于Generator函数，依次读取两个文件，可以将gen写成async函数
+
+```js
+const asyncReadFile = async function(){
+    const f1 = await readFile('xxx');
+    const f2 = await readFile('xxxx');
+    console.log(f1.toString());
+    console.log(f2.toString());
+}
+```
+
+async函数将Generator函数的星号替换为async，将yield替换为await，对Genertor改进体现在：
+
+1. 内置执行器
+
+   > Generator函数的执行必须靠执行器，所以有了co模块，而async函数自带执行器，即async函数执行与普通函数一样。
+   >
+   > ```js
+   > asyncReadFile();
+   > ```
+   >
+   > 自动执行，输出最后结果。Generator函数，需要调用next方法，或用co模块。
+
+2. 更好的语义
+
+   async表示函数里有异步操作，await表示紧跟在后面的表达式需要等待结果。
+
+3. 更广的使用性
+
+   co模块约定，yield命令后面只能是Thunk函数或Promise对象
+
+   async函数的await命令后面，可以是Promise对象和原始类型的值（数值、字符串、布尔值，都会立即转成立即resolved的Promise对象）
+
+4. 返回值是Promise
+
+   async函数返回值是Promise对象，这边Generator函数返回值是Iterator对象方便，可以用then方法指定下一步操作。
+
+async函数完全可以看做多个异步操作，包装成一个Promise对象，而await命令就是内部then命令的语法糖。
+
+
+
+### 基本用法
+
+async函数返回一个Promise对象，可以使用then方法添加回调函数。**当函数执行的时候，一旦遇到await就会先返回，等到异步操作完成，再接着执行函数体后面的语句。**
+
+```javascript
+async function getStockPriceByName(name){
+    const symbol = await getStockSymbol(name);
+    const stockPrice = await getStockPrice(symbol);
+    return stockPrice;
+}
+
+getStockPriceByName('goog').then(function(result){
+    console.log(result);
+});
+//调用该函数，会立即返回一个Promise对象。
+```
+
+
+
+```javascript
+function timeouit(ms){
+    return new Promise(resolve => {
+        setTimeout(resolve, ms);
+    });
+}
+
+async function asyncPrint(value, ms){
+    await timeout(ms);
+    console.log(value);
+}
+
+asyncPrint('hello world', 50);
+```
+
+
+
+async函数有多种形式：
+
+```javascript
+async function foo(){} //函数声明
+const foo = async function(){} //函数表达式
+
+let obj = { async foo(){} }//对象的方法
+obj.foo().then(/*...*/)
+               
+//Class 的方法
+class Storage{
+    constructor(){
+        this.cachePromise = caches.open('avatars');
+    }
+    
+    async getAvatar(name){
+        const cache = await this.cachePromise;
+        return cache.match(`/avatars/${name}.jpg`);
+    }
+}
+
+const storage = new Storage();
+storage.getAvatar('jake').then(/**/);
+
+//箭头函数
+const foo = async() => {}
+
+```
+
+
+
+### async语法
+
+难点是错误处理机制
+
+async函数返回一个Promise对象。
+
+async函数内部return语句返回的值，会成为then方法回调函数的参数。
+
+```js
+async function f(){
+    return 'hello world'; //return命令返回值，会被then方法回调函数接收
+}
+
+f().then(v => console.log(v));
+```
+
+
+
+async函数内部抛出错误，会导致返回的Promise对象变为reject状态。抛出的错误对象会被catch方法回调函数接收到。
+
+```js
+async function f(){
+    throw new Error('error');
+}
+f().then(v=>console.log(v), e => console.log(e));
+```
+
+
+
+async函数返回的Promise对象，必须等到内部所有的await命令后面的Promise对象执行完，才会发生状态改变，除非遇到return语句或抛出错误，即只有函数async函数内部的异步操作执行完成，才会执行then方法指定的回调函数。
+
+```js
+async function getTitle(url){
+    let response = await fetch(url);
+    let html = await response.text();
+    return html.match(/<title>([\s\S]+)<\/title>/i)[1];
+}
+getTitle('http://xxxx').then(console.log)
+```
+
+上述代码，函数内部有三个操作，要等全部完成后，才会执行then方法里面的console.log
+
+
+
+**正常情况下，await命令后面是一个Promise对象，返回该对象的结果**。如果不是，就直接返回对应的值。
+
+```js
+async function f(){
+    return await 123;
+}
+f().then(v => console.log(v));
+```
+
+另一种情况，await命令后面是一个thenable对象，那么await会将其等同于Promise对象
+
+```js
+class Sleep{
+    constructor(timeout){
+        this.timeout = timeout;
+    }
+    then(resolve, reject){
+        const startTime = Date.now();
+        setTimeout(()=>resolve(Date.now() - startTime), this.timeout)
+    }
+}
+
+(async () => {
+    const sleepTime = await new Sleep(1000);
+    console.log(sleepTime)
+})();
+```
+
+
+
+await命令后面的Promise对象如果变为reject状态，则reject参数会被catch方法的回调函数接收。
+
+```js
+async function f(){
+    await Promise.reject('Error');
+}
+f().then(v=>console.log(v)).catch(e =>console.log(e));
+//reject方法的参数传入catch方法的回调函数，这里在await前面加上return 一样。
+```
+
+
+
+任何一个await语句后面的Promise对象变为reject状态，那么整个async函数都会中断执行。
+
+```js
+async function f(){
+    await Promise.reject('error');
+    await Promise.resolve('123');//不会执行了
+}
+```
+
+若不希望中断，则可以将第一个await放在try...catch结构里面，这样不论前面是够成功，下面的await会执行。
+
+另一种方法就是在第一个await后面Promise对象再跟一个catch方法，处理前面可能出现的错误。
+
+
+
+如果await后面的异步操作出错，那么等同于async函数返回的Promise对象被reject。
+
+```js
+async function f(){
+    await new Promise(function(resolve, reject){
+        throw new Error('error');
+    })
+}
+f().then(v => console.log(v)).catch(e=>console.log(e));
+```
+
+防止出错的方法，就是将await放在try...catch中。
+
+如果多个await，可以统一放在try...catch结构中。
+
+> 注意点：
+>
+> await命令后面是Promise对象，可能会rejected,所以做好将await放在try...catch中
+>
+> 多个await命令后面的异步操作，如果不存咋继发关系，最好同时触发
+>
+> ```js
+> //写法一
+> let [foo, bar] = await Promise.all([getFoo(), getBar()]);
+> //写法二
+> let fooPromise = getFoo();
+> let barPromise = getBar();
+> let foo = await fooPromise;
+> let bar = await = barPromise;
+> ```
+>
+> await命令只能用在async函数中
+>
+> ```js
+> async function dbFun(db){
+>     let docs = [{},{},{}];
+>     for(let doc of docs){
+>         await db.post(doc);
+>     }
+> }
+> ```
+>
+> async函数可以保留运行堆栈。
+
+
+
+### async函数实现原理
+
+实现原理就是将Generator函数和自动执行器，包装在一个函数里。
+
+```js
+async function fn(args){}
+//等同于
+function fn(args){
+    return spawn(function*(){
+        //....
+    })
+}
+//spawn函数时自动执行器
+
+function spawn(genF){
+    return new Promise(function(resolve, reject){
+        const gen = genF();
+        function step(nextF){
+            let next;
+            try{
+                next = nextF();
+            }catch(e){
+                return reject(e)
+            }
+            
+            if(next.done){
+                return resolve(next.value);
+            }
+            Promise.resolve(next.value).then(function(v){
+                step(function(){return gen.next(v);});
+            }, function(e){
+                step(function(){return gen.throw(e);});
+            });
+        }
+        step(function(){return gen.next(undefined)})
+    })
+}
+```
+
+
+
+### 按顺序完成异步操作
+
+Promise的写法
+
+```js
+function logInOrder(urls){
+    //远程读取所有URL
+    const textPromises = urls.map(url => {
+        return fetch(url).then(response => reponse.text());
+    });
+    
+    //按次序输出
+    textPromises.reduce((chain,textPromise) => {
+        return chain.then(()=> textPromise)
+        	.then(text => console.log(text));
+    }, Promise.resolve());
+}
+```
+
+
+
+async写法
+
+```js
+async function logInOrder(urls){
+    for(const url of urls){
+        const response = await fetch(url);
+        console.log(await response.text());
+    }
+}
+//存在所有远程操作都是继发操作，只有前一个URL返回结果，才会读取下一个，需要并发发出远程请求
+
+async function logInOrder(urls){
+    //并发读取远程URL
+    const textPromises = urls.map(async url => {
+        const response = await fetch(url);
+        return response.text();
+    });
+    
+    //按次序输出
+    for(const textPromise of textPromises){
+        console.log(await textPromise);
+    }
+}
+```
+
