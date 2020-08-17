@@ -4557,3 +4557,1030 @@ async function logInOrder(urls){
 }
 ```
 
+
+
+
+
+## Class 的基本语法
+
+### 简介
+
+在JavaScript语言中，生成实例对象的传统方法是通过构造函数。
+
+```js
+function Point(x, y){
+    this.x = x;
+    this.y = y;
+}
+Point.prototype.toString = function(){
+    return `${this.x},${this.y}`;
+}
+var p = new Point(1, 2);
+```
+
+ES6提供了更接近传统语言的写法，引入了Class类的概念，作为对象的模板。
+
+基本上ES6的class可以看做是一个语法糖。
+
+```js
+class Point{
+    constructor(x, y){
+        this.x = x;
+        this.y = y;
+    }
+    toString(){
+        return `${this.x}, ${this.y}`;
+    }
+}
+```
+
+调用constructor方法，这就是构造方法，而this关键字则代表实例对象。
+
+ES5的构造函数Point，对应ES6的Point类的构造方法。
+
+Point类除了构造方法，还定义了一个toString方法。
+
+ES6的类，完全可以看做构造函数的另一种写法
+
+```js
+class Point{
+    //...
+}
+typeof Point; //'function'
+Point === Point.prototype.constructor //true
+```
+
+类的数据类型就是函数，类本身就指向构造函数。
+
+构造函数的prototype属性，在ES6的类上继续存在，类的所有方法都定义在类的prototype属性上面。
+
+```js
+class Point{
+    constructor(){
+        //...
+    }
+    toString(){
+        //...
+    }
+    toValue(){
+        //...
+    }
+}
+//等同于
+Point.prototype = {
+    constructor(){},
+    toString(){},
+    toValue(){}
+}
+```
+
+
+
+在类的实例上调用方法，其实就是调用原型上的方法。
+
+```javascript
+class B{}
+let b = new B();
+b.constructor === B.prototype.constructor //true
+```
+
+由于类的方法都定义在prototype对象上，所以类的新方法可以添加在prototype对象上面。
+
+Object.assign方法可以方便的一次向类添加多个方法。
+
+```javascript
+class Point{
+    constructor(){}
+}
+Object.assgin(Point.prototype, {
+    toString(){},
+    toValue(){}
+})
+```
+
+prototype对象的constructor属性直接指向类的本身。
+
+类内部所有定义的方法，都是不可枚举的，这是和ES5有区别的。
+
+```js
+class Point{
+    toString(){}
+}
+Object.keys(Point.prototype);//[]
+
+function Point(x,y){}
+Point.prototype.toString = function(){}
+Object.keys(Point.prototype);//['string']
+```
+
+
+
+**constructor方法**是类的默认方法，通过new命令生成对象实例，自动调用该方法。
+
+constructor方法默认返回实例对象（即this）,完全可以指定返回另一个对象。
+
+```js
+class Foo{
+    constructor(){
+        return Object.create(null);
+    }
+}
+new Foo() instanceof Foo;//false
+//返回以个新对象，导致实例对象不是Foo类的实例
+```
+
+
+
+类必须使用new功能，否则报错，这个和普通构造函数的区别，后者不用new也可以执行。
+
+
+
+**类的实例**：用new命令生成类的实例。
+
+实例的属性除了显示定义在其本身，即this对象上，否则都是定义在原型上，即class上。
+
+```js
+//定义类
+class Point{
+    constructor(x, y){
+        this.x = x;
+        this.y = y
+    }
+    toString(){
+        return `${this.x}, ${this.y}`;
+    }
+}
+
+var point = new Point(2,3);
+point.toString();
+
+point.hasOwnProperty('x');//true
+point.hasOwnProperty('toString');// false
+point.__proto__.hasOwnProperty('toString');// true
+```
+
+x,y都是实例对象point自身的属性（因为定义在this变量上），toString是原型对象的属性。
+
+```js
+let p1 = new Point(2,3);
+let p2 = new Point(3,4);
+p1.__proto__ === p2.__proto__;//true,原型都是Point.prototype.
+//当改变p1的原型是，p2的原型也随着改变
+```
+
+
+
+生成环境中，我们可以通过Object.getPrototypeOf方法来获取实例对象的原型，然后再为原型添加方法和属性。
+
+
+
+类的内部也可以使用**get**和**set**关键字，对某个属性设置存值函数和取值函数，拦截该属性的存取行为。
+
+```js
+class MyClass{
+    constructor(){}
+    get prop(){
+        return 'getter';
+    }
+    set prop(value){
+        console.log(value)
+    }
+}
+let instance = new MyClass();
+//prop属性有对应的存值函数和取值函数，因此赋值和读取行为都被自定义了。
+```
+
+存值函数和取值函数时设置在属性的Descriptor对象上。
+
+
+
+**属性表达式**,类的属性名可以采用表达式。
+
+
+
+与函数一样，类也可以使用表达式的形式定义。
+
+```js
+const MyClass = class Me{
+    getClassName(){
+        return Me.name;
+    }
+}
+```
+
+需要注意这个类的名字是Me，但是Me只能在Class内部可用，指代当前类，在Class外部，这个类只能使用MyClass引用。
+
+如果内部没有用到，可以省略Me。
+
+注意：
+
+1. 严格模式，类和模块的内部默认就是严格模式。
+
+2. 类不存在变量提升
+
+   ```js
+   new Foo();//ReferenceError
+   class Foo{}
+   //ES6不会把类的声明提升到代码头部，这只要是因为与下文继承有关，必须保证子类在父类之后定义。
+   ```
+
+3. name属性，由于本质上ES6的类只是ES5构造函数的一层包装，所以函数的许多特性都被Class继承，包括name属性。总是返回紧跟在class关键字后面的类名。
+
+4. Generator方法:类的Symbol.iterator方法前有一个星号，表示Generator函数，返回一个类的默认遍历器。
+
+5. this指向，类的方法内部如果包含this，默认指向类的实例。一旦单独使用，可能报错
+
+   > 如果需要将方法单独提出来，this指向该方法运行时所在的环境，由于class内部时严格模式，所以this实际指向undefined，从而报错。
+   >
+   > 解决方法一：在构造函数中绑定this.
+   >
+   > ```js
+   > class A{
+   >     constructor(){
+   >         this.B = this.B.bind(this);
+   >     }
+   > }
+   > ```
+   >
+   > 方法二：使用箭头函数
+   >
+   > 方法三：使用Proxy，获取方法的时候，自动绑定this
+
+
+
+### 静态方法
+
+类相当于实例的原型，所有在类中定义的方法，都会被实例继承。如果在一个方法前加上static关键字，表示该方法不会被实例继承，而是直接通过类调用。
+
+注意：如果静态方法包含this关键字，这个this指向的时类，而不是实例。
+
+```js
+class Foo{
+    static bar(){
+        this.baz();
+    }
+    static baz(){
+        console.log('hello');
+    }
+    baz(){
+        console.log('world');
+    }
+}
+Foo.bar();//hello
+```
+
+**父类的静态方法可以被子类继承**
+
+```js
+class Foo{
+    static classMethod(){
+        
+    }
+}
+
+class Bar extends Foo{
+    return super.classMethod() + 'too';
+}
+Bar.classMethod();
+```
+
+静态方法也可以从super对象上调用
+
+
+
+### 实例属性的新写法
+
+实例出现除了定义在constructor方法里面的this上，也可以定义在类的最顶层。
+
+```js
+class Counter{
+    _count = 0;
+	get value(){
+        return this._count;
+    }
+	increment(){
+        this._count++;
+	}
+}
+```
+
+
+
+### 静态属性
+
+静态属性指的时Class本身属性，即Class.propName，而不是定义在实例对象this上的属性。
+
+```js
+class Foo{}
+Foo.prop = 1;//为类Foo定义了一个静态属性prop
+```
+
+ES6明确规定，Class内部只有静态方法，没有静态属性。
+
+新提案是在实例前面加上static关键字。
+
+
+
+### 私有方法和私有属性
+
+私有方法和私有属性，只能类内部访问的方法和属性，有利于代码的封装，ES6不支持，只能变通实现。
+
+```js
+class Widget{
+    //public
+    foo(baz){
+        this._bar(baz);
+    }
+    
+    //private
+    _bar(baz){
+        return this.snaf = baz;
+    }
+}
+```
+
+方法名前面下划线，表示是一个只限于内部使用的私有方法，但是类的外部，还是能调用这个方法。
+
+```js
+//将私有方法移除模块，因为模块内部的所有方法都是对外可见的
+class Widget{
+    foo(baz){
+        bar.call(this, baz);
+    }
+}
+
+function bar(baz){
+    return this.snaf = baz;
+}
+```
+
+还有一种方法，利用Symbol值得唯一性，将私有方法的名字命名为一个Symbol值
+
+```js
+const bar = Symbol('bar');
+const snaf = Symbol('snaf');
+export default class myClass{
+    //公有方法
+    foo(baz){
+        this[bar](baz)
+    }
+    //私有方法
+    [bar](baz){
+        return this[snaf] = baz;
+    }
+}
+```
+
+一般情况下无法获取bar和snaf值，但是可以通过Reflect.ownKeys()依然可以拿到。
+
+```js
+const instance = new myClass();
+Reflect.ownKeys(myClass.prototype);
+```
+
+
+
+**私有属性的提案**，在属性名之前，使用#表示。
+
+私有属性，只能在类的内部使用。
+
+
+
+### new.target属性
+
+new是从构造函数生成实例对象的命令。ES6为new命令引入一个new.target属性，该属性一般用在构造函数中，返回new命令作用于那个构造函数。
+
+若构造函数不是通过new命令或Reflect.constructor()调用的，new.target会返回undefined。
+
+```js
+function Person(name){
+    if(new.target === Person){
+        this.name = name;
+    }else{
+        throe new Error('必须使用new命令生成实例')
+    }
+}
+
+//上面代码确保构造函数只能通过new命令调用。
+```
+
+Class内部调用new.target，返回当前的Class。
+
+注意： 子类继承父类，new.target会返回子类。利用这个特点，可以写出不能独立使用，必须继承后才能使用的类。
+
+```js
+class Shape{
+    constructor(){
+        if(new.target === Shape){
+            throw new Error('本类不能实例化')
+        }
+    }
+}
+
+class Rectangle extends Shape{
+    constructor(length, width){
+        super();
+        //...
+    }
+}
+var x = new Shape();
+var y = new Rectangle(3,4);
+//Shape类不能被实例化，只能用于继承。
+//在函数外部，使用new.target会报错。
+```
+
+
+
+## Class的继承
+
+Class可以通过extend关键字是实现继承，这笔ES5通过修改原型链实现继承，方便清晰。
+
+```js
+class Point{}
+class ColorPoint extends Point{
+    constructor(x, y, color){
+        super(x,y);
+        this.color = color;
+    }
+    toString(){
+        return this.color+' ' + super.toString();//调用父类的toString
+    }
+}
+```
+
+
+
+子类必须在constructor方法调用super方法。这是因为子类自己的this对象，必须先通过父类的构造函数完成塑造，得到与父类同样的实例属性和方法，然后对其加工，加上子类自己的实例属性和方法。
+
+如果不加super方法，子类就得不到this对象。
+
+
+
+ES5继承实质是先创造子类的实例对象this，然后再将父类的方法添加到this上面（Parent.apply(this)）;
+
+ES6的继承机制完全不同，实质是先将父类实例对象的属性和方法，加到this上面（必须调用super方法），然后再用子类的构造函数修改this。
+
+不管有没有显示定义constructor方法，任何一个子类都有constructor方法。
+
+在子类的构造函数中，只有调用super之后，才能使用this关键字。这是因为子类实例的构建，基于父类实例，只有super方法才能调用父类实例。
+
+```js
+class Point{
+    constructor(x,y){
+        this.x = x;
+        this.y = y;
+    }
+}
+class ColorPoint extends Point{
+    constructor(x, y, color){
+        this.color = color;//ReferenceError
+        super(x, y);
+        this.color = color;
+    }
+}
+//super方法必须放在最前面，才能使用this。
+```
+
+
+
+### Object.getPrototypeOf()
+
+该方法可以用来从子类上获取父类。
+
+```js
+Object.getPrototypeOf(ColorPoint) === Point;
+//可以通过这个方法判断，一个类是否继承另一个类
+```
+
+
+
+### super关键字
+
+这个关键字，既可以当做函数使用，也可以当做对象使用。
+
+1. super作为函数调用时，代表父类的构造函数。ES6规定，子类的构造函数必须执行一次super函数。
+
+   super代表了父类的构造函数，但是返回的时子类的实例，即super内部的this指向了B的实例
+
+   ```js
+   A.prototype.constructor.call(this);
+   ```
+
+   ```js
+   class A{
+       constructor(){
+           console.log(new.target.name);
+       }
+   }
+   class B extends A{
+       constructor(){
+           super();
+       }
+   }
+   new A();//A
+   new B();//B
+   //new.target指向当前正在执行的函数，当super()执行时，它指向的时子类B的构造函数，而不是父类A的构造函数。
+   ```
+
+   作为函数，super只能用在子类的构造函数中
+
+2. super作为对象，在普通方法中，指向父类的原型对象；静态方法中，指向父类。
+
+   由于super指向父类的原型对象，所以定义在父类实例上的方法或属性时无法通过super调用的。
+
+   ```js
+   class A{
+       constructor(){
+           this.p = 2;
+       }
+   }
+   class B extends A{
+       get m(){
+           return super.p;
+       }
+   }
+   let b = new B();
+   b.m;//undefined
+   //若定义在父类的原型对象上，则可以访问
+   A.prototype.x = 2;
+   ```
+
+   如果陒对象，用在静态方法之中，super将指向父类，而不是父类的原型对象。
+
+   ```js
+   class Parent{
+       static myMethod(msg){
+           cosnole.log('static', msg);
+       }
+       
+       myMethod(msg){
+           console.log('instance', msg);
+       }
+   }
+   
+   class Child extends Parent{
+       static myMethod(msg){
+           super.myMethod(msg);
+       }
+       
+       
+       myMethod(msg){
+           console.log(msg);
+       }
+   }
+   
+   Child.myMethod(1);//static 1
+   var child = new Child();
+   child.myMethod(2);//instance 2
+   ```
+
+   子类的静态方法中通过super调用父类的方法时，方法内部的this指向当前的子类，而不是子类的实例。
+
+
+
+注意：使用super的时候，必须显示指定是作为函数，还是作为对象。
+
+
+
+### 类的prototype属性和\_\_proto\_\_属性
+
+大多数浏览器的ES5之前，每个对象都有\_\_proto\_\_属性，指向对应的构造函数prototype属性。
+
+Class作为构造函数的语法糖，同时又prototype属性和\_\_proto\_\_属性，所以同时存在两天继承链。
+
+- 子类的\_\_proto\_\_属性，表示构造函数的继承，总是指向父类
+- 子类的prototype属性的\_\_proto\_\_属性，表示方法的继承，总是指向父类的prototype属性。
+
+```js
+class A {}
+class B extends A{}
+B.__proto__ === A;//true
+B.prototype.__proto__ === A.prototype
+```
+
+这是因为类的继承按照下面方式实现的：
+
+```js
+class A{}
+class B{}
+//B的实例继承A的实例
+Object.setPrototypeOf(B.prototype, A.prototype);
+//B继承了A的静态属性
+Object.setPtototypeOf(B, A);
+const b = new B();
+```
+
+Object.setPrototypeOf方法的实现
+
+```js
+Object.setPrototypeOf = function(obj, proto){
+    obj.__proto__ = proto;
+    return obj;
+}
+```
+
+**两条继承链**：
+
+作为一个对象，子类(B)的原型(\_\_proto\_\_属性）时父类A；
+
+作为一个构造函数，子类B的原型对象（prototype属性）是父类的原型对象的实例；
+
+
+
+### 实例的\_\_proto\_\_属性
+
+子类实例的\_\_proto\_\_属性的\_\_proto\_\_属性，指向父类实例的\_\_proto\_\_，即子类的原型的原型，是父类的原型。
+
+```js
+var p1 = new Point(2,3);
+var p2 = new ColorPoint(2,3,'red');
+p2.__proto__.__proto__ === p1.__proto__
+```
+
+所以通过子类实例的\_\_proto\_\_.\_\_proto\_\_属性，可以修改父类实例的行为。
+
+```js
+p2.__proto__.__proto__.printName = function(){console.log('test')}
+```
+
+
+
+### 原生构造函数的继承
+
+原生构造函数是指语言内置的构造函数，通常用来生成数据结构：
+
+- Boolean
+- Number
+- String
+- Array
+- Date
+- Function
+- RegExp
+- Error
+- Object
+
+
+
+ES6允许继承原生的构造函数定义子类，因为ES6是先新建父类的实例对象this，然后再用子类的构造函数修身this，使得父类的所有行为都可以继承。
+
+
+
+
+
+### Mixin模式的实现
+
+Mixin是指多个对象合成一个新的对象，新的对象具有各个组成成员的接口。
+
+```js
+function mix(...mixins){
+    class Mix(){
+        constructor(){
+            for(let mixin of mixins){
+                copyProperties(this, new mixin());//拷贝实例属性
+            }
+        }
+    }
+    
+    for(let mixin of mixins){
+        copyProperties(Mix, mixin);
+        copyProperties(Mix.prototype, mixin.prototype);
+    }
+    return Mix
+}
+
+function copyProperties(target, source){
+    for(let key of Reflect.ownKeys(source)){
+        if(key !== 'constructor' && key !== 'prototype' && key !== 'name'){
+            let desc = Object.getOwnPropertyDescriptor(source, key);
+            Object.defineProperty(target, key, desc);
+        }
+    }
+}
+
+```
+
+
+
+
+
+## Module的语法
+
+ES6之前主要模块的加载方案是CommonJS 和AMD两种，前者用于服务器，后者用于浏览器。
+
+ES6模块设计思想是尽量的静态化，使得编译时就能确定模块的依赖关系，以及输入和输出的遍历，CommonJS和AMD只能在运行时确定。
+
+
+
+ES6模块不是对象，而是通过export命令显示指定输出代码，在通过import命令输入。
+
+由于ES6模块是编译时加载，使得静态分析称为可能，这样救恩能够拓宽JavaScript语法。
+
+ES6模块的优点：
+
+- 不再需要UMD模块格式了，浏览器和服务器都支持
+- 浏览器的新API就能用模块提供，不必做成全局变量或navigator对象的属性
+- 不再需要对象作为命名空间
+
+
+
+### 严格模式
+
+ES6模块自动采用严格模式。
+
+严格模式主要有一下限制：
+
+- 变量必须声明后使用
+- 函数的参数不能有同名属性
+- 不能使用with语句
+- 不能对只读属性赋值
+- 不能使用前缀0表示八进制
+- 不能删除不可删除属性
+- 不能删除变量delete prop
+- eval不会在它的外层作用域引入变量
+- eval和arguments不能被重新赋值
+- arguments不会自动反映函数的变化
+- 不能使用arguments.callee
+- 不能使用arguments.caller
+- 禁止this指向全局对象
+- 不能使用fn.caller和fn.arguments获取函数调用的堆栈
+- 增加保留字protected、static、interface
+
+
+
+### export 命令
+
+模块功能主要由两个命令构成：export和import。
+
+一个模块就是一个独立的文件。该文件内部所有的遍历，外部无法获取。
+
+export可以输出遍历、函数、类，可以使用as关键字重命名。
+
+export命令规定的是对外的接口，必须与模块内部的遍历建立一一对应关系。
+
+export语句输出的接口，与其对应的值是动态绑定关系，即通过该接口，可以取到模块内部实时的值。
+
+
+
+### import命令
+
+使用export命令定义了模块的对外接口以后，其他JS文件就可以通过import命令加载这个模块
+
+import命令可以使用关键字as重命名。
+
+import命令输入的变量都是只读的，因为它的本质是输入接口，即不允许在加载模块的脚本里面，改写接口。
+
+import命令具有提升效果，会提升到整个模块的头部，首先执行。
+
+由于import是静态执行，所以不能使用表达式和变量，这些只有在运行时才能得到结果的语法结构。
+
+
+
+### 模块的整体加载
+
+除了制定加载某个输出值，也可以整体加载，即用星号指定一个对象。
+
+模块整体加载所在的那个对象，应该是可以静态分析的，所以不允许运行时改变。
+
+
+
+### export default命令
+
+为模块指定默认输出。
+
+本质上，export default就是输出一个叫做default的变量或方法，然后系统允许你为它取任意名字
+
+
+
+### export 和 import的复合写法
+
+在一个模块中，先输入后输出同一个模块，import语句可以与export语句写在一起
+
+``` js
+export { foo, bar } from 'my_module'
+```
+
+
+
+### 模块的继承
+
+模块之间也可以继承。
+
+```js
+export * from 'circle';
+export default function(x){
+    return Math.exp(x);
+}
+```
+
+
+
+### 跨模块常量
+
+若设置跨模块的常量或一个值要被多个模块共享，可以按如下写法：
+
+```js
+export const A = 1;
+export const B = 2;
+export const C = 3;
+```
+
+
+
+### import()
+
+import命令会被JavaScript引擎静态分析，先于模块内部的其他语句执行，所以import命令无法取代require动态加载功能。
+
+ES2020引入了import()函数，支持动态加载。
+
+```js
+import(specifier);
+```
+
+import命令能够接受什么参数，import()函数就能够接受什么参数，主要区别是后者是动态加载。
+
+```js
+const main = document.querySelector('main');
+import(`./section-modules/${someVariable}.js`).then(module => {
+    module.loadPageInto(main);
+}).catch(err=>{
+    main.textConent = err.message;
+})
+```
+
+适合场合：
+
+- 按需加载，可以在需要的时候，再加载某个模块
+- 条件加载，可以将import()函数放在if代码块，根据不同条件加载不同模块
+- 动态的模块路径
+
+注意：import()加载模块成功后，这个模块会作为一个对象，当做then方法的参数，所以可以使用对象解构赋值的语法。
+
+
+
+
+
+## Module的加载实现
+
+默认情况下，浏览器是同步加载JavaScript脚本，即渲染引擎遇到\<script>标签就会停下来，等到执行完脚本，继续向下渲染，如果是外部脚本，还必须加入脚本下载时间。
+
+浏览器可以通过defer或者async进行异步加载。
+
+defer要等到整个页面在内存中正常渲染接受，才会执行。
+
+async一旦下载完毕，渲染引擎就会中断渲染，执行这个脚本以后，继续渲染。
+
+若多个defer，会按照他们在页面中出现的顺序加载。
+
+若多个async，则不能保证加载顺序。
+
+
+
+**加载规则**，浏览器加载ES6模块，需要加入type="module"属性
+
+浏览器对于带有type="module"的脚本，都是异步加载，不会造成浏览器堵塞，即等到整个页面渲染完，再执行模块脚本，等同于打开了defer属性。
+
+若页面上多个type="module"，则会按照页面出现顺序依次执行。
+
+若同时使用type="module" async 则不会按照顺序执行，只要该模块加载完成，立即执行。
+
+ES6模块也允许内嵌在网页中，语法行为与外部加载脚本一致，对于外部的模块脚本，有几点注意：
+
+- 代码是在模块作用域中允许，而不是全局作用域。模块内部的顶层遍历，外部不可见
+- 模块脚本自动采用严格模式
+- 模块之中，可以使用import命令加载其他模块，也可以使用export输出对外接口
+- 模块之中，顶层this关键字返回undefined，不是指向window
+- 同一个模块如果加载多次，只执行一次
+
+
+
+**利用this等于undefined这个语法点，可以侦测当前代码是否在ES6模块之中**
+
+
+
+### ES6模块和CommonJS模块的差异
+
+两个模块完全不同，有两个重大差异：
+
+- CommonJS模块输出的是一个值得拷贝，ES6输出的时值得引用
+- CommonJS模块是运行时加载，ES6模块是编译时输出接口
+
+第二个差异是因为CommonJS加载一个对象，即module.exports属性，该对象只有在脚本运行完才会生成。
+
+ES6模块不是对象，对外接口只是一种静态定义，在代码静态解析阶段就会生成。
+
+
+
+CommonJS模块输出的时值得拷贝，即一旦输出一个值，模块内部的变化，不会影响到这个值。
+
+```js
+//lib.js
+var counter = 3;
+function incCounter(){
+    counter++;
+}
+module.exports = {
+    counter,
+    incCounter
+}
+//main.js
+var mod = require('./lib.js');
+console.log(mod.counter);//3
+mod.incCounter();
+console.log(mod.counter);///3
+```
+
+lib加载后，内部变化影响不到输出的mod.counter。因为mod.counter是一个原始类型的值，会被缓存。除非写成一个函数，才能得到内部变动后的值。
+
+```js
+//lib.js
+module.exports = {
+    get counter(){
+        return counter;
+    }
+}
+//实际上，counter属性是一个取值函数，此时就能正确取到内部变化了。
+```
+
+
+
+ES6 模块的允许机制不一样，JS引擎对脚本静态分析的时候，遇到模块加载命令import，就会生成一个只读引用，等到脚本真正执行时，根据这个只读引用，到被加载的模块里面取值。原始值变了，imoprt加载的值也会变。
+
+ES6模块是动态引用，并不会缓存值，模块里面变了绑定其所在的模块。
+
+```js
+//lib.js
+export let counter = 3;
+export function incCounter(){counter++}
+
+//main.js
+import {counter, incCounter} from './lib';
+console.log(counter);//3
+incCounter();
+console.log(counter);//4
+```
+
+ES6模块的输入变了counter是活的，完全反应其所在模块lib.js内部的变化。
+
+ES6输入的模块变量只是一个'符号链接'，所以是只读的，对他重新赋值会报错。
+
+
+
+### NodeJS加载
+
+NodeJS对ES6模块处理，目前解决方案，将两者分开，ES6和CommonJS采用各自的加载方案。从v13.2开始，NodeJS默认开启ES6模块支持
+
+ES6模块采用.mjs后缀文件名。只要在文件里面使用import或export命令，必须采用.mjs后缀名。
+
+NodeJS遇到.mjs文件，就会认为是ES6模块，默认开启严格模式。
+
+
+
+如果不希望改后缀，则可以在项目package.json文件中，指定type字段为module，一旦设置，该目录里面的JS脚本，就被解释用ES6模块。如果此时用CommonJS模块，需将CommonJS文件后缀名改为.cjs。
+
+ES6模块与CommonJS模块尽量不要混用。
+
+**main字段**，package.json文件有两个字段可以指定模块的入口文件：main和exports。
+
+比较简单的模块，可以只使用main，指定模块加载的入口文件。
+
+**exports字段**，优先级高与main，有多种用法：
+
+- 子目录别名
+
+  exports字段可以指定脚本或子目录的别名，定义别名为submodule，可以从别名加载文件
+
+  ```js
+  {
+      "exports":{
+          "./submodule": './src/submodule.js'
+      }
+  }
+  
+  import submodule from 'es-module-package/submodule'
+  
+  //目录别名
+  {
+      "exports":{
+          "./features":"./src/features"
+      }
+  }
+  
+  import feature from 'es-module-package/features/x.js'
+  ```
+
+- main的别名
+
+  exports字段的别名如果是.，就代表模块的主入口，优先级高于mian字段，并且可以直接写成exports字段的值
+
+  ```js
+  {
+      "main": './main-legacy.cjs',
+       "exports": {
+          ".":"main-modern.cjs"
+       }
+  }
+  ```
+
+- 条件加载
+
+  利用.这个别名，可以为ES6模块和CommonJS指定不同入口。目前，这个功能需要在NodeJS允许的时候，打开--experimental-conditional-exports标志。
