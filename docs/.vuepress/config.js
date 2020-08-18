@@ -19,6 +19,6 @@ module.exports = {
     displayAllHeaders: true,
     activeHeaderLinks: true,
     sidebar: sidebar,
-    sidebarDepth: 1
+    sidebarDepth: 2
   },
 };

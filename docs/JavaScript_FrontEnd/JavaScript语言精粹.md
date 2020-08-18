@@ -1,4 +1,4 @@
-# JavaScript: The Good Parts
+# JavaScript语言精粹
 
 JavaScript优秀的想法包括函数、弱类型、动态对象、对象字面量表示法。
 
