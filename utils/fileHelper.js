@@ -21,7 +21,8 @@ var fileHelper = {
   },
 
   getFileNames: function(filePaths) {
-    let fileNames = [''];
+    // let fileNames = [''];
+    let fileNames = [];
     fs.readdirSync(filePaths).forEach((file) => {
       let fullPath = filePaths +'/'+ file;
       let fileInfo = fs.statSync(fullPath);
