@@ -5584,3 +5584,116 @@ ES6模块与CommonJS模块尽量不要混用。
 - 条件加载
 
   利用.这个别名，可以为ES6模块和CommonJS指定不同入口。目前，这个功能需要在NodeJS允许的时候，打开--experimental-conditional-exports标志。
+
+
+
+ES6模块加载CommonJS模块，一个模块同时支持ES6和CommonJS两种格式的常见方法是，package.json文件**main**字段指定CommonJS入口，给NodeJS使用，**module**字段指定ES6模块入口，给打包工具使用。
+
+```json
+{
+    "type": "module",
+    "main": "./index.cjs",
+    "exports": {
+        "require": "./index.cjs",
+        "default": "./wrapper.mjs"
+    }
+}
+```
+
+注意： import命令加载CommonJS模块，只能整体加载，不能只加载单一的输出项。
+
+使用NodeJS内置的module.createRequire()方法
+
+```js
+import { createRequire } from 'module';
+const require = require(import.meta.url);
+const cjs = require('./cjs.cjs')
+```
+
+通过ES6模块通过module.createRequire()方法加载CommonJS模块
+
+
+
+CommonJS模块加载ES6模块
+
+CommonJS的require命令不能加载ES6模块，只能使用import方法加载
+
+```js
+(async ()=>{
+    await import(''./my-app.js)
+})();
+```
+
+
+
+ES6模块的加载路径必须给出脚本的完整路径，不能省略脚本的后缀名。
+
+import命令和package.json文件的main字段如果省略脚本的后缀名，会报错。
+
+为了与浏览器的import加载规则相同，NodeJS的.mjs文件支持URL路径。
+
+```js
+import './foo.mjs?query=1';//传入参数1
+```
+
+目前NodeJS的imporrt命令只支持加载本地模块file协议和data协议，不支持远程加载模块。
+
+
+
+NodeJS规定ES6模块中不能使用CommonJS模块的特有内部变量：
+
+- this 关键字，ES6中指向undefined
+- arguments
+- require
+- module
+- exports
+- __filename
+- __dirname
+
+
+
+### 循环加载
+
+指a脚本的执行依赖b脚本，b脚本的执行依赖a脚本。
+
+CommonJS模块加载原理：
+
+CommonJS的一个模块是一个脚本文件，require命令第一次加载该脚本，就会执行整个脚本，并在内存中生成一个对象。以后需要用到这个模块的时候，回到生成对象的exports属性上取值，即使再次执行，也不会再次执行该模块，而是到缓存中取值。
+
+CommonJS模块无论加载多少次，都只会第一次加载时运行一次，以后加载，就返回第一次运行的结果，除非手动清除系统缓存。
+
+CommonJS输入的是被输出值得拷贝，不是引用。
+
+由于CommonJS模块遇到循环加载时，返回的是当前已经指向的部分值，而不是代码全部执行后的值。
+
+
+
+ES6的模块是动态引用，如果使用import从一个模块加载遍历，那些变量不会被缓存，而是成为一个指向被加载mode引用，需要开发者自己保证。
+
+可以用函数来解决，因为函数具有提升作用，在执行时，已经完成了定义。
+
+```js
+//a.mjs
+import { bar } from './b';
+console.log('a.mjs');
+console.log(bar());
+function foo(){return 'foo'}
+export {foo}
+
+//b.js
+import { foo } from './a';
+console.log('b.mjs');
+console.log(foo());
+function bar() { return 'bar'};
+export { bar }
+```
+
+```shell
+node --experimental-modules a.mjs
+```
+
+执行过程：
+
+首先执行a.mjs以后，引擎发现加载b.mjs，所以会优先执行b.mjs，在执行a.mjs。
+
+在执行b.mjs时，已知从a.mjs输入了foo接口，这是不会去执行a.mjs，而是认为这个接口已经存在，继续往下执行。
